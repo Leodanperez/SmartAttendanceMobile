@@ -8,9 +8,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.google.firebase.auth.FirebaseAuth
@@ -18,6 +21,12 @@ import com.google.firebase.firestore.FirebaseFirestore
 import dev.leo.smartattendance.core.designsystem.SmartAttendanceBottomBar
 import dev.leo.smartattendance.core.designsystem.SmartAttendanceHeader
 import dev.leo.smartattendance.core.navigation.NavRoutes
+import dev.leo.smartattendance.data.datasource.auth.FirebaseAuthDataSource
+import dev.leo.smartattendance.data.datasource.firestore.FirebaseFirestoreDataSource
+import dev.leo.smartattendance.data.repository.AuthRepositoryImpl
+import dev.leo.smartattendance.data.repository.CourseRepositoryImpl
+import dev.leo.smartattendance.domain.model.User
+import dev.leo.smartattendance.domain.model.UserRole
 import dev.leo.smartattendance.feature.auth.LoginScreen
 import dev.leo.smartattendance.feature.auth.SignUpScreen
 import dev.leo.smartattendance.feature.auth.SplashScreen
@@ -29,6 +38,7 @@ import dev.leo.smartattendance.feature.reports.ReportsScreen
 import dev.leo.smartattendance.feature.studenthome.StudentHomeScreen
 import dev.leo.smartattendance.feature.teacherhome.TeacherHomeScreen
 import dev.leo.smartattendance.ui.theme.SmartAttendanceMobileTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -41,15 +51,58 @@ class MainActivity : ComponentActivity() {
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
 
+        val authDataSource = FirebaseAuthDataSource(auth)
+        val firestoreDataSource = FirebaseFirestoreDataSource(db)
+        val authRepository = AuthRepositoryImpl(authDataSource, firestoreDataSource)
+        val courseRepository = CourseRepositoryImpl(firestoreDataSource)
+
         enableEdgeToEdge()
         setContent {
             SmartAttendanceMobileTheme {
                 var isShowingSplash by remember { mutableStateOf(true) }
-                var userRole by remember { mutableStateOf("TEACHER") } // "TEACHER" or "STUDENT"
+                var currentUser by remember { mutableStateOf<User?>(null) }
+                val scope = rememberCoroutineScope()
+
                 var currentRoute by remember {
-                    mutableStateOf<NavRoutes>(
-                        if (auth.currentUser != null) NavRoutes.TeacherHome else NavRoutes.Login
-                    )
+                    mutableStateOf<NavRoutes>(NavRoutes.Login)
+                }
+
+                // Check session & load user role from Firestore
+                LaunchedEffect(auth.currentUser) {
+                    val firebaseUser = auth.currentUser
+                    if (firebaseUser != null) {
+                        scope.launch {
+                            // Seed initial courses if empty
+                            firestoreDataSource.seedInitialCoursesIfEmpty(firebaseUser.uid)
+
+                            val userDto = firestoreDataSource.getUser(firebaseUser.uid)
+                            if (userDto != null) {
+                                val role = try {
+                                    UserRole.valueOf(userDto.role.uppercase().trim())
+                                } catch (e: Exception) {
+                                    UserRole.STUDENT
+                                }
+                                currentUser = User(
+                                    uid = firebaseUser.uid,
+                                    firstName = userDto.firstName.ifEmpty { userDto.name.substringBefore(" ") },
+                                    lastName = userDto.lastName.ifEmpty { userDto.name.substringAfter(" ", "") },
+                                    email = firebaseUser.email ?: "",
+                                    institutionalCode = userDto.institutionalCode,
+                                    role = role,
+                                    department = userDto.department
+                                )
+                                currentRoute = when (role) {
+                                    UserRole.STUDENT -> NavRoutes.StudentHome
+                                    UserRole.TEACHER -> NavRoutes.TeacherHome
+                                    UserRole.ADMIN -> NavRoutes.TeacherHome
+                                }
+                            } else {
+                                currentRoute = NavRoutes.StudentHome
+                            }
+                        }
+                    } else {
+                        currentRoute = NavRoutes.Login
+                    }
                 }
 
                 if (isShowingSplash) {
@@ -59,6 +112,10 @@ class MainActivity : ComponentActivity() {
                         }
                     )
                 } else {
+                    val effectiveRole = currentUser?.role ?: UserRole.STUDENT
+                    val teacherCourses = courseRepository.getTeacherCoursesFlow(currentUser?.uid ?: "").collectAsState(initial = emptyList()).value
+                    val studentCourses = courseRepository.getStudentCoursesFlow(currentUser?.uid ?: "").collectAsState(initial = emptyList()).value
+
                     when (currentRoute) {
                         NavRoutes.Login -> {
                             Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -66,7 +123,28 @@ class MainActivity : ComponentActivity() {
                                     auth = auth,
                                     modifier = Modifier.padding(innerPadding),
                                     onLoginSuccess = {
-                                        currentRoute = if (userRole == "TEACHER") NavRoutes.TeacherHome else NavRoutes.StudentHome
+                                        val firebaseUser = auth.currentUser
+                                        if (firebaseUser != null) {
+                                            scope.launch {
+                                                firestoreDataSource.seedInitialCoursesIfEmpty(firebaseUser.uid)
+                                                val userDto = firestoreDataSource.getUser(firebaseUser.uid)
+                                                val role = try {
+                                                    UserRole.valueOf((userDto?.role ?: "STUDENT").uppercase().trim())
+                                                } catch (e: Exception) {
+                                                    UserRole.STUDENT
+                                                }
+                                                currentUser = User(
+                                                    uid = firebaseUser.uid,
+                                                    email = firebaseUser.email ?: "",
+                                                    role = role
+                                                )
+                                                currentRoute = when (role) {
+                                                    UserRole.STUDENT -> NavRoutes.StudentHome
+                                                    UserRole.TEACHER -> NavRoutes.TeacherHome
+                                                    UserRole.ADMIN -> NavRoutes.TeacherHome
+                                                }
+                                            }
+                                        }
                                     },
                                     onNavigateToRegister = {
                                         currentRoute = NavRoutes.Register
@@ -90,12 +168,14 @@ class MainActivity : ComponentActivity() {
 
                         NavRoutes.TeacherHome -> {
                             TeacherHomeScreen(
-                                userName = auth.currentUser?.displayName ?: "Prof. Morales",
-                                userRole = "Docente",
+                                userName = currentUser?.fullName?.ifEmpty { "Prof. Morales" } ?: "Prof. Morales",
+                                userRole = currentUser?.role?.name ?: "DOCENTE",
+                                courses = teacherCourses,
                                 currentRoute = currentRoute,
                                 onNavigateToRoute = { route -> currentRoute = route },
                                 onLogout = {
-                                    auth.signOut()
+                                    authRepository.logout()
+                                    currentUser = null
                                     currentRoute = NavRoutes.Login
                                 }
                             )
@@ -103,23 +183,47 @@ class MainActivity : ComponentActivity() {
 
                         NavRoutes.StudentHome -> {
                             StudentHomeScreen(
-                                studentName = auth.currentUser?.displayName ?: "Ana López",
+                                studentName = currentUser?.fullName?.ifEmpty { "Ana López" } ?: "Ana López",
+                                courses = studentCourses,
                                 currentRoute = currentRoute,
-                                onNavigateToRoute = { route -> currentRoute = route }
+                                onNavigateToRoute = { route -> currentRoute = route },
+                                onEnrollStudent = { code ->
+                                    scope.launch {
+                                        courseRepository.enrollStudentByCode(code, currentUser?.uid ?: "")
+                                    }
+                                }
                             )
                         }
 
                         NavRoutes.Sessions -> {
-                            if (userRole == "TEACHER") {
+                            if (effectiveRole == UserRole.TEACHER || effectiveRole == UserRole.ADMIN) {
                                 TeacherQrDisplayScreen(
+                                    sessionId = "session_01",
+                                    courseRepository = courseRepository,
                                     onCloseSession = {
                                         currentRoute = NavRoutes.TeacherHome
                                     }
                                 )
                             } else {
                                 QrScannerScreen(
+                                    activeCourseName = studentCourses.firstOrNull()?.name ?: "Desarrollo de Sistemas",
+                                    activeTeacherName = studentCourses.firstOrNull()?.teacherName ?: "Prof. Morales",
                                     onNavigateBack = {
                                         currentRoute = NavRoutes.StudentHome
+                                    },
+                                    onRegisterAttendance = { payload ->
+                                        scope.launch {
+                                            val attendance = dev.leo.smartattendance.domain.model.Attendance(
+                                                sessionId = payload.sessionId,
+                                                courseId = payload.courseId,
+                                                courseName = payload.courseName,
+                                                studentId = currentUser?.uid ?: "",
+                                                studentName = currentUser?.fullName ?: "Estudiante",
+                                                institutionalCode = currentUser?.institutionalCode ?: "EST-2024",
+                                                status = dev.leo.smartattendance.domain.model.AttendanceStatus.PRESENT
+                                            )
+                                            courseRepository.registerAttendance(attendance)
+                                        }
                                     }
                                 )
                             }
@@ -129,8 +233,8 @@ class MainActivity : ComponentActivity() {
                         NavRoutes.Reports,
                         NavRoutes.Profile -> {
                             val screenTitle = when (currentRoute) {
-                                NavRoutes.Courses -> "Mis Cursos"
-                                NavRoutes.Reports -> "Reportes"
+                                NavRoutes.Courses -> if (effectiveRole == UserRole.STUDENT) "Mis Cursos" else "Cursos"
+                                NavRoutes.Reports -> if (effectiveRole == UserRole.STUDENT) "Historial" else "Reportes"
                                 NavRoutes.Profile -> "Perfil"
                                 else -> "SmartAttendance"
                             }
@@ -140,13 +244,14 @@ class MainActivity : ComponentActivity() {
                                     SmartAttendanceHeader(
                                         title = screenTitle,
                                         subtitle = "SmartAttendance M3",
-                                        badgeText = userRole,
+                                        badgeText = effectiveRole.name,
                                         onProfileClick = { currentRoute = NavRoutes.Profile }
                                     )
                                 },
                                 bottomBar = {
                                     SmartAttendanceBottomBar(
                                         currentRoute = currentRoute,
+                                        userRole = effectiveRole,
                                         onTabSelected = { route -> currentRoute = route }
                                     )
                                 },
@@ -158,11 +263,15 @@ class MainActivity : ComponentActivity() {
                                         .padding(innerPadding)
                                 ) {
                                     when (currentRoute) {
-                                        NavRoutes.Courses -> CoursesScreen()
+                                        NavRoutes.Courses -> CoursesScreen(
+                                            courses = if (effectiveRole == UserRole.STUDENT) studentCourses else teacherCourses
+                                        )
                                         NavRoutes.Reports -> ReportsScreen()
                                         NavRoutes.Profile -> ProfileScreen(
+                                            user = currentUser ?: User(role = effectiveRole),
                                             onLogout = {
-                                                auth.signOut()
+                                                authRepository.logout()
+                                                currentUser = null
                                                 currentRoute = NavRoutes.Login
                                             }
                                         )

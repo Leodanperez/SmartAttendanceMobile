@@ -3,6 +3,7 @@ package dev.leo.smartattendance.feature.qrscanner
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -104,14 +105,67 @@ import dev.leo.smartattendance.ui.theme.SmartAttendanceMobileTheme
 import dev.leo.smartattendance.ui.theme.SurfaceContainerHigh
 import dev.leo.smartattendance.ui.theme.SurfaceContainerLow
 import dev.leo.smartattendance.ui.theme.SurfaceContainerLowest
+import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.Executors
 
+data class QrPayload(
+    val sessionId: String,
+    val courseId: String,
+    val courseName: String,
+    val title: String,
+    val rawToken: String
+)
+
+fun parseQrPayload(raw: String, fallbackCourseName: String): QrPayload {
+    val clean = raw.trim()
+    return try {
+        if (clean.startsWith("{") && clean.endsWith("}")) {
+            val json = JSONObject(clean)
+            QrPayload(
+                sessionId = json.optString("sessionId", json.optString("id", "session_01")),
+                courseId = json.optString("courseId", "course_01"),
+                courseName = json.optString("courseName", json.optString("course", fallbackCourseName)),
+                title = json.optString("title", json.optString("sessionTitle", "Sesión de Asistencia")),
+                rawToken = json.optString("token", clean)
+            )
+        } else if (clean.contains("?")) {
+            val uri = Uri.parse(clean)
+            QrPayload(
+                sessionId = uri.getQueryParameter("sessionId") ?: uri.getQueryParameter("id") ?: "session_01",
+                courseId = uri.getQueryParameter("courseId") ?: "course_01",
+                courseName = uri.getQueryParameter("courseName") ?: uri.getQueryParameter("course") ?: fallbackCourseName,
+                title = uri.getQueryParameter("title") ?: "Sesión de Asistencia",
+                rawToken = clean
+            )
+        } else {
+            QrPayload(
+                sessionId = if (clean.isNotBlank()) clean else "session_01",
+                courseId = "course_01",
+                courseName = fallbackCourseName,
+                title = "Sesión de Asistencia",
+                rawToken = clean
+            )
+        }
+    } catch (e: Exception) {
+        QrPayload(
+            sessionId = "session_01",
+            courseId = "course_01",
+            courseName = fallbackCourseName,
+            title = "Sesión de Asistencia",
+            rawToken = clean
+        )
+    }
+}
+
 @Composable
 fun QrScannerScreen(
-    onNavigateBack: () -> Unit = {}
+    activeCourseName: String = "Desarrollo de Sistemas",
+    activeTeacherName: String = "Prof. Morales",
+    onNavigateBack: () -> Unit = {},
+    onRegisterAttendance: (QrPayload) -> Unit = {}
 ) {
     val context = LocalContext.current
     var hasCameraPermission by remember {
@@ -137,6 +191,16 @@ fun QrScannerScreen(
     var isProcessing by remember { mutableStateOf(false) }
     var showManualCodeDialog by remember { mutableStateOf(false) }
     var activeCamera by remember { mutableStateOf<Camera?>(null) }
+
+    val parsedPayload = remember(scannedResult) {
+        scannedResult?.let { parseQrPayload(it, activeCourseName) }
+    }
+
+    LaunchedEffect(parsedPayload) {
+        parsedPayload?.let { payload ->
+            onRegisterAttendance(payload)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -528,14 +592,14 @@ fun QrScannerScreen(
 
                             Column {
                                 Text(
-                                    text = "Algoritmos y Estructuras",
+                                    text = activeCourseName,
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                     color = OnSurface,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
-                                    text = "Prof. Morales • Sesión Activa",
+                                    text = "$activeTeacherName • Sesión Activa",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = OnSurfaceVariant,
                                     maxLines = 1,
@@ -562,7 +626,7 @@ fun QrScannerScreen(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "08:45 AM",
+                                    text = "EN VIVO",
                                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                     color = OnSurface
                                 )
@@ -655,9 +719,9 @@ fun QrScannerScreen(
             }
 
             // A11 --- Result Dialog
-            scannedResult?.let { token ->
+            parsedPayload?.let { payload ->
                 AttendanceResultDialog(
-                    token = token,
+                    payload = payload,
                     onDismiss = {
                         scannedResult = null
                         isProcessing = false
@@ -670,7 +734,7 @@ fun QrScannerScreen(
                 ManualCodeDialog(
                     onDismiss = { showManualCodeDialog = false },
                     onSubmitCode = { code ->
-                        scannedResult = "MANUAL_CODE_$code"
+                        scannedResult = code
                     }
                 )
             }
@@ -769,10 +833,10 @@ private fun processImageProxy(
 
 @Composable
 fun AttendanceResultDialog(
-    token: String,
+    payload: QrPayload,
     onDismiss: () -> Unit
 ) {
-    val currentTime = SimpleDateFormat("HH:mm:ss - dd/MM/yyyy", Locale.getDefault(Locale.Category.FORMAT)).format(Date())
+    val currentTime = SimpleDateFormat("HH:mm:ss - dd/MM/yyyy", Locale.ROOT).format(Date())
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -803,9 +867,17 @@ fun AttendanceResultDialog(
         text = {
             Column {
                 Text(
-                    text = "Curso: Algoritmos y Estructuras de Datos",
+                    text = "Curso: ${payload.courseName}",
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
                 )
+                if (payload.title.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Sesión: ${payload.title}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = OnSurface
+                    )
+                }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "Estado: PRESENTE (Verificado)",
@@ -820,7 +892,7 @@ fun AttendanceResultDialog(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Token: ${token.take(16)}...",
+                    text = "Token / Código: ${payload.rawToken.take(24)}",
                     style = MaterialTheme.typography.labelSmall,
                     color = Primary
                 )

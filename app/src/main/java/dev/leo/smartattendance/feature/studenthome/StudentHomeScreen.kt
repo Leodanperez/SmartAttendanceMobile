@@ -12,10 +12,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.QrCodeScanner
@@ -42,6 +42,8 @@ import androidx.compose.ui.unit.dp
 import dev.leo.smartattendance.core.designsystem.SmartAttendanceBottomBar
 import dev.leo.smartattendance.core.designsystem.SmartAttendanceHeader
 import dev.leo.smartattendance.core.navigation.NavRoutes
+import dev.leo.smartattendance.domain.model.Course
+import dev.leo.smartattendance.domain.model.UserRole
 import dev.leo.smartattendance.feature.enrollment.EnrollCourseDialog
 import dev.leo.smartattendance.ui.theme.Emerald50
 import dev.leo.smartattendance.ui.theme.Emerald800
@@ -56,8 +58,10 @@ import dev.leo.smartattendance.ui.theme.SurfaceContainerLowest
 @Composable
 fun StudentHomeScreen(
     studentName: String = "Ana López",
+    courses: List<Course> = emptyList(),
     currentRoute: NavRoutes = NavRoutes.StudentHome,
-    onNavigateToRoute: (NavRoutes) -> Unit = {}
+    onNavigateToRoute: (NavRoutes) -> Unit = {},
+    onEnrollStudent: (String) -> Unit = {}
 ) {
     var showEnrollDialog by remember { mutableStateOf(false) }
 
@@ -73,6 +77,7 @@ fun StudentHomeScreen(
         bottomBar = {
             SmartAttendanceBottomBar(
                 currentRoute = currentRoute,
+                userRole = UserRole.STUDENT,
                 onTabSelected = { route -> onNavigateToRoute(route) }
             )
         }
@@ -118,7 +123,7 @@ fun StudentHomeScreen(
                             color = OnSurface
                         )
                         Text(
-                            text = "Escanea el código QR proyectado por tu docente",
+                            text = "Escanea el código QR proyectado en el aula (Android o Angular)",
                             style = MaterialTheme.typography.bodySmall,
                             color = OnSurfaceVariant
                         )
@@ -139,7 +144,7 @@ fun StudentHomeScreen(
                                 tint = Color.White
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Escanear QR de Clase", fontWeight = FontWeight.Bold, color = Color.White)
+                            Text("Escanear QR con Cámara", fontWeight = FontWeight.Bold, color = Color.White)
                         }
                     }
                 }
@@ -177,26 +182,43 @@ fun StudentHomeScreen(
 
             item { Spacer(modifier = Modifier.height(10.dp)) }
 
-            // Course 1
-            item {
-                StudentCourseCard(
-                    code = "DS-2026",
-                    name = "Desarrollo de Sistemas",
-                    teacher = "Prof. Morales",
-                    attendanceRate = "96%"
-                )
-            }
-
-            item { Spacer(modifier = Modifier.height(10.dp)) }
-
-            // Course 2
-            item {
-                StudentCourseCard(
-                    code = "BD-3001",
-                    name = "Bases de Datos I",
-                    teacher = "Dra. Ramos",
-                    attendanceRate = "90%"
-                )
+            if (courses.isEmpty()) {
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = SurfaceContainerLowest,
+                        shadowElevation = 1.dp,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Sin Cursos Inscritos",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = OnSurface
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Aún no estás inscrito en ninguna asignatura. Presiona 'Unirme a Curso' e ingresa el código proporcionado por tu docente.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = OnSurfaceVariant,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
+                    }
+                }
+            } else {
+                items(courses) { course ->
+                    StudentCourseCard(
+                        code = course.code.ifEmpty { "DS-2026" },
+                        name = course.name,
+                        teacher = course.teacherName.ifEmpty { "Docente Asignado" },
+                        attendanceRate = "${course.attendanceRate.takeIf { it > 0 } ?: 100}%"
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
             }
         }
     }
@@ -204,8 +226,8 @@ fun StudentHomeScreen(
     if (showEnrollDialog) {
         EnrollCourseDialog(
             onDismiss = { showEnrollDialog = false },
-            onEnrollSuccess = {
-                // Enrollment handled
+            onEnrollSuccess = { code ->
+                onEnrollStudent(code)
             }
         )
     }

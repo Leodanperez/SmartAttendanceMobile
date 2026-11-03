@@ -1,12 +1,291 @@
 package dev.leo.smartattendance.data.datasource.firestore
 
 import com.google.firebase.firestore.FirebaseFirestore
+import dev.leo.smartattendance.data.dto.AttendanceDto
+import dev.leo.smartattendance.data.dto.CourseDto
+import dev.leo.smartattendance.data.dto.EnrollmentDto
+import dev.leo.smartattendance.data.dto.SessionDto
 import dev.leo.smartattendance.data.dto.UserDto
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.tasks.await
 
 class FirebaseFirestoreDataSource(private val db: FirebaseFirestore) {
-    fun saveUser(uid: String, userDto: UserDto, onComplete: (Boolean, Exception?) -> Unit) {
-        db.collection("users").document(uid).set(userDto)
-            .addOnSuccessListener { onComplete(true, null) }
-            .addOnFailureListener { exception -> onComplete(false, exception) }
+
+    // --- USER OPERATIONS ---
+    suspend fun getUser(uid: String): UserDto? {
+        return try {
+            val snapshot = db.collection("users").document(uid).get().await()
+            if (snapshot.exists()) {
+                snapshot.toObject(UserDto::class.java)
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    suspend fun saveUser(uid: String, userDto: UserDto): Boolean {
+        return try {
+            db.collection("users").document(uid).set(userDto).await()
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    // --- COURSES OPERATIONS ---
+    fun getTeacherCoursesFlow(teacherId: String): Flow<List<CourseDto>> = callbackFlow {
+        val listener = db.collection("courses")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+                val list = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(CourseDto::class.java)?.copy(id = doc.id)
+                } ?: emptyList()
+
+                val filtered = list.filter { course ->
+                    course.teacherIds.isEmpty() || course.teacherIds.contains(teacherId)
+                }
+                trySend(filtered)
+            }
+        awaitClose { listener.remove() }
+    }
+
+    fun getStudentEnrolledCoursesFlow(studentId: String): Flow<List<CourseDto>> = callbackFlow {
+        if (studentId.isBlank()) {
+            trySend(emptyList())
+            awaitClose { }
+            return@callbackFlow
+        }
+
+        val enrollmentListener = db.collection("enrollments")
+            .whereEqualTo("studentId", studentId)
+            .whereEqualTo("status", "ACTIVE")
+            .addSnapshotListener { enrollmentSnapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+
+                val enrolledCourseIds = enrollmentSnapshot?.documents?.mapNotNull { doc ->
+                    doc.getString("courseId")
+                }?.distinct() ?: emptyList()
+
+                if (enrolledCourseIds.isEmpty()) {
+                    trySend(emptyList())
+                } else {
+                    db.collection("courses")
+                        .addSnapshotListener { courseSnapshot, courseError ->
+                            if (courseError != null) {
+                                close(courseError)
+                                return@addSnapshotListener
+                            }
+
+                            val enrolledCourses = courseSnapshot?.documents?.mapNotNull { doc ->
+                                if (enrolledCourseIds.contains(doc.id)) {
+                                    doc.toObject(CourseDto::class.java)?.copy(id = doc.id)
+                                } else null
+                            } ?: emptyList()
+
+                            trySend(enrolledCourses)
+                        }
+                }
+            }
+
+        awaitClose { enrollmentListener.remove() }
+    }
+
+    fun getAllCoursesFlow(): Flow<List<CourseDto>> = callbackFlow {
+        val listener = db.collection("courses")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+                val list = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(CourseDto::class.java)?.copy(id = doc.id)
+                } ?: emptyList()
+                trySend(list)
+            }
+        awaitClose { listener.remove() }
+    }
+
+    suspend fun seedInitialCoursesIfEmpty(teacherId: String) {
+        try {
+            val snapshot = db.collection("courses").get().await()
+            if (snapshot.isEmpty) {
+                val initialCourses = listOf(
+                    CourseDto(
+                        id = "c1",
+                        name = "Algoritmos y Estructuras de Datos",
+                        description = "Curso de estructuras de datos complejas",
+                        courseCode = "CS201",
+                        section = "Lab 4",
+                        teacherIds = listOf(teacherId),
+                        teacherName = "Prof. Morales",
+                        studentCount = 28,
+                        schedule = "Lun / Mié 08:00 - 10:00"
+                    ),
+                    CourseDto(
+                        id = "c2",
+                        name = "Bases de Datos Avanzadas",
+                        description = "Modelado relacional y NoSQL",
+                        courseCode = "CS304",
+                        section = "Aula 102",
+                        teacherIds = listOf(teacherId),
+                        teacherName = "Prof. Morales",
+                        studentCount = 32,
+                        schedule = "Mar / Jue 10:00 - 12:00"
+                    ),
+                    CourseDto(
+                        id = "c3",
+                        name = "Inteligencia Artificial",
+                        description = "Redes neuronales y machine learning",
+                        courseCode = "CS402",
+                        section = "Pab. Robótica",
+                        teacherIds = listOf(teacherId),
+                        teacherName = "Prof. Morales",
+                        studentCount = 22,
+                        schedule = "Vie 14:00 - 18:00"
+                    )
+                )
+                for (course in initialCourses) {
+                    db.collection("courses").document(course.id).set(course).await()
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    // --- ENROLLMENT OPERATIONS ---
+    suspend fun enrollStudentByCode(code: String, studentId: String): Result<Boolean> {
+        return try {
+            val query = db.collection("courses")
+                .whereEqualTo("courseCode", code)
+                .get()
+                .await()
+
+            if (query.isEmpty) {
+                return Result.failure(Exception("No se encontró ningún curso con el código $code"))
+            }
+
+            val courseDoc = query.documents.first()
+            val courseId = courseDoc.id
+            val enrollmentId = "${courseId}_$studentId"
+
+            val enrollmentDto = EnrollmentDto(
+                id = enrollmentId,
+                courseId = courseId,
+                studentId = studentId,
+                status = "ACTIVE"
+            )
+
+            db.collection("enrollments").document(enrollmentId).set(enrollmentDto).await()
+            Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // --- SESSION OPERATIONS ---
+    fun getActiveSessionFlow(teacherId: String): Flow<SessionDto?> = callbackFlow {
+        val listener = db.collection("sessions")
+            .whereEqualTo("teacherId", teacherId)
+            .whereEqualTo("status", "ACTIVE")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+                val activeDoc = snapshot?.documents?.firstOrNull()
+                val session = activeDoc?.toObject(SessionDto::class.java)?.copy(id = activeDoc.id)
+                trySend(session)
+            }
+        awaitClose { listener.remove() }
+    }
+
+    suspend fun createSession(sessionDto: SessionDto): String {
+        return try {
+            val docRef = if (sessionDto.id.isNotBlank()) {
+                db.collection("sessions").document(sessionDto.id)
+            } else {
+                db.collection("sessions").document()
+            }
+            val finalDto = sessionDto.copy(id = docRef.id)
+            docRef.set(finalDto).await()
+            docRef.id
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ""
+        }
+    }
+
+    suspend fun closeSession(sessionId: String) {
+        try {
+            db.collection("sessions").document(sessionId)
+                .update("status", "CLOSED")
+                .await()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    // --- ATTENDANCE OPERATIONS (REAL-TIME SNAPSHOT LISTENERS) ---
+    fun getLiveAttendancesFlow(sessionId: String): Flow<List<AttendanceDto>> = callbackFlow {
+        val listener = db.collection("attendances")
+            .whereEqualTo("sessionId", sessionId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+                val attendances = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(AttendanceDto::class.java)?.copy(id = doc.id)
+                } ?: emptyList()
+                trySend(attendances)
+            }
+        awaitClose { listener.remove() }
+    }
+
+    suspend fun registerAttendance(attendanceDto: AttendanceDto): Result<Boolean> {
+        return try {
+            val attendanceId = "${attendanceDto.sessionId}_${attendanceDto.studentId}"
+            val docRef = db.collection("attendances").document(attendanceId)
+
+            val existingDoc = docRef.get().await()
+            if (existingDoc.exists()) {
+                return Result.failure(Exception("Ya has registrado tu asistencia en esta sesión"))
+            }
+
+            val finalDto = attendanceDto.copy(id = attendanceId)
+            docRef.set(finalDto).await()
+            Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    fun getStudentAttendanceHistoryFlow(studentId: String): Flow<List<AttendanceDto>> = callbackFlow {
+        val listener = db.collection("attendances")
+            .whereEqualTo("studentId", studentId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+                val list = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(AttendanceDto::class.java)?.copy(id = doc.id)
+                } ?: emptyList()
+                trySend(list)
+            }
+        awaitClose { listener.remove() }
     }
 }

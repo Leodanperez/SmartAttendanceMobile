@@ -36,6 +36,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -52,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.leo.smartattendance.core.common.QrCodeGenerator
 import dev.leo.smartattendance.core.designsystem.SmartAttendanceHeader
+import dev.leo.smartattendance.domain.repository.CourseRepository
 import dev.leo.smartattendance.ui.theme.Emerald50
 import dev.leo.smartattendance.ui.theme.Emerald800
 import dev.leo.smartattendance.ui.theme.OnSurface
@@ -65,12 +67,17 @@ import kotlinx.coroutines.delay
 fun TeacherQrDisplayScreen(
     courseName: String = "Algoritmos y Estructuras de Datos",
     sessionTitle: String = "Semana Técnica - Sesión 1",
+    sessionId: String = "session_01",
+    courseRepository: CourseRepository? = null,
     onCloseSession: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var qrToken by remember { mutableStateOf("SESSION_TOKEN_${System.currentTimeMillis()}") }
     var qrBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var secondsRemaining by remember { mutableIntStateOf(900) }
+
+    val liveAttendances = courseRepository?.getLiveAttendancesFlow(sessionId)?.collectAsState(initial = emptyList())?.value ?: emptyList()
+    val presentCount = if (liveAttendances.isNotEmpty()) liveAttendances.size else 18
 
     LaunchedEffect(qrToken) {
         qrBitmap = QrCodeGenerator.generateQrBitmap(qrToken, 600, 600)
@@ -193,7 +200,7 @@ fun TeacherQrDisplayScreen(
                             color = SurfaceContainerHigh
                         ) {
                             Text(
-                                text = "18 / 24 Registrados",
+                                text = "$presentCount / 24 Registrados",
                                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                                 color = Primary,
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)

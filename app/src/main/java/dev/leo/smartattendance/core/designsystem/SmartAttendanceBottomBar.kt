@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.QrCodeScanner
@@ -23,6 +24,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.leo.smartattendance.core.navigation.NavRoutes
+import dev.leo.smartattendance.domain.model.UserRole
 import dev.leo.smartattendance.ui.theme.OnSurfaceVariant
 import dev.leo.smartattendance.ui.theme.Primary
 import dev.leo.smartattendance.ui.theme.Secondary
@@ -37,42 +39,108 @@ data class NavigationTabItem(
     val hasBadge: Boolean = false
 )
 
-val DefaultNavigationTabs = listOf(
-    NavigationTabItem(
-        route = NavRoutes.TeacherHome,
-        label = "Inicio",
-        icon = Icons.Outlined.Home,
-        selectedIcon = Icons.Default.Home
-    ),
-    NavigationTabItem(
-        route = NavRoutes.Courses,
-        label = "Mis cursos",
-        icon = Icons.Outlined.School
-    ),
-    NavigationTabItem(
-        route = NavRoutes.Sessions,
-        label = "Sesiones",
-        icon = Icons.Outlined.QrCodeScanner,
-        hasBadge = true
-    ),
-    NavigationTabItem(
-        route = NavRoutes.Reports,
-        label = "Reportes",
-        icon = Icons.Outlined.BarChart
-    ),
-    NavigationTabItem(
-        route = NavRoutes.Profile,
-        label = "Perfil",
-        icon = Icons.Outlined.Person
-    )
-)
+fun getNavigationTabsForRole(role: UserRole): List<NavigationTabItem> {
+    return when (role) {
+        UserRole.STUDENT -> listOf(
+            NavigationTabItem(
+                route = NavRoutes.StudentHome,
+                label = "Inicio",
+                icon = Icons.Outlined.Home,
+                selectedIcon = Icons.Default.Home
+            ),
+            NavigationTabItem(
+                route = NavRoutes.Courses,
+                label = "Mis cursos",
+                icon = Icons.Outlined.School
+            ),
+            NavigationTabItem(
+                route = NavRoutes.Sessions,
+                label = "Escanear QR",
+                icon = Icons.Outlined.QrCodeScanner,
+                hasBadge = true
+            ),
+            NavigationTabItem(
+                route = NavRoutes.Reports,
+                label = "Historial",
+                icon = Icons.Outlined.BarChart
+            ),
+            NavigationTabItem(
+                route = NavRoutes.Profile,
+                label = "Perfil",
+                icon = Icons.Outlined.Person
+            )
+        )
+
+        UserRole.TEACHER -> listOf(
+            NavigationTabItem(
+                route = NavRoutes.TeacherHome,
+                label = "Inicio",
+                icon = Icons.Outlined.Home,
+                selectedIcon = Icons.Default.Home
+            ),
+            NavigationTabItem(
+                route = NavRoutes.Courses,
+                label = "Mis cursos",
+                icon = Icons.Outlined.School
+            ),
+            NavigationTabItem(
+                route = NavRoutes.Sessions,
+                label = "Sesiones",
+                icon = Icons.Outlined.QrCodeScanner,
+                hasBadge = true
+            ),
+            NavigationTabItem(
+                route = NavRoutes.Reports,
+                label = "Reportes",
+                icon = Icons.Outlined.BarChart
+            ),
+            NavigationTabItem(
+                route = NavRoutes.Profile,
+                label = "Perfil",
+                icon = Icons.Outlined.Person
+            )
+        )
+
+        UserRole.ADMIN -> listOf(
+            NavigationTabItem(
+                route = NavRoutes.TeacherHome,
+                label = "Inicio",
+                icon = Icons.Outlined.Home,
+                selectedIcon = Icons.Default.Home
+            ),
+            NavigationTabItem(
+                route = NavRoutes.Courses,
+                label = "Cursos",
+                icon = Icons.Outlined.School
+            ),
+            NavigationTabItem(
+                route = NavRoutes.Sessions,
+                label = "Usuarios",
+                icon = Icons.Outlined.Group
+            ),
+            NavigationTabItem(
+                route = NavRoutes.Reports,
+                label = "Reportes",
+                icon = Icons.Outlined.BarChart
+            ),
+            NavigationTabItem(
+                route = NavRoutes.Profile,
+                label = "Perfil",
+                icon = Icons.Outlined.Person
+            )
+        )
+    }
+}
+
+val DefaultNavigationTabs = getNavigationTabsForRole(UserRole.TEACHER)
 
 @Composable
 fun SmartAttendanceBottomBar(
     currentRoute: NavRoutes,
     onTabSelected: (NavRoutes) -> Unit,
     modifier: Modifier = Modifier,
-    tabs: List<NavigationTabItem> = DefaultNavigationTabs
+    userRole: UserRole = UserRole.TEACHER,
+    tabs: List<NavigationTabItem> = getNavigationTabsForRole(userRole)
 ) {
     NavigationBar(
         containerColor = SurfaceContainerLowest,

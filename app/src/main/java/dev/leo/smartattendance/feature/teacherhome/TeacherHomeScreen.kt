@@ -87,6 +87,7 @@ import dev.leo.smartattendance.ui.theme.Tertiary
 fun TeacherHomeScreen(
     userName: String = "Prof. Morales",
     userRole: String = "Docente",
+    courses: List<dev.leo.smartattendance.domain.model.Course> = emptyList(),
     currentRoute: NavRoutes = NavRoutes.TeacherHome,
     onNavigateToRoute: (NavRoutes) -> Unit = {},
     onLogout: () -> Unit = {}
@@ -161,6 +162,7 @@ fun TeacherHomeScreen(
             item {
                 // Assigned Courses List
                 AssignedCoursesSection(
+                    courses = courses,
                     onVerTodosClick = { onNavigateToRoute(NavRoutes.Courses) }
                 )
             }
@@ -700,7 +702,16 @@ fun QuickActionsGrid(
 }
 
 @Composable
-fun AssignedCoursesSection(onVerTodosClick: () -> Unit) {
+fun AssignedCoursesSection(
+    courses: List<dev.leo.smartattendance.domain.model.Course> = emptyList(),
+    onVerTodosClick: () -> Unit
+) {
+    val displayCourses = if (courses.isNotEmpty()) courses else listOf(
+        dev.leo.smartattendance.domain.model.Course("c1", "CS201", "Algoritmos y Estructuras", "Lab 4 • 28 alumnos", schedule = "Lun / Mié 08:00 - 10:00"),
+        dev.leo.smartattendance.domain.model.Course("c2", "CS304", "Bases de Datos Avanzadas", "Aula 102 • 32 alumnos", schedule = "Mar / Jue 10:00 - 12:00"),
+        dev.leo.smartattendance.domain.model.Course("c3", "CS402", "Inteligencia Artificial", "Pab. Robótica • 22 alumnos", schedule = "Vie 14:00 - 18:00")
+    )
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -723,7 +734,7 @@ fun AssignedCoursesSection(onVerTodosClick: () -> Unit) {
                     color = SurfaceContainerHighest
                 ) {
                     Text(
-                        text = "3",
+                        text = "${displayCourses.size}",
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                         color = OnSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
@@ -751,42 +762,18 @@ fun AssignedCoursesSection(onVerTodosClick: () -> Unit) {
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Course Item 1
-        CourseCardItem(
-            code = "CS201",
-            codeBg = SecondaryFixed,
-            codeTextColor = Secondary,
-            sectionInfo = "Lab 4 • 28 alumnos",
-            courseTitle = "Algoritmos y Estructuras",
-            attendancePercentage = "92% Asist.",
-            schedule = "Lun / Mié 08:00 - 10:00"
-        )
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        // Course Item 2
-        CourseCardItem(
-            code = "CS304",
-            codeBg = PrimaryFixed,
-            codeTextColor = Primary,
-            sectionInfo = "Aula 102 • 32 alumnos",
-            courseTitle = "Bases de Datos Avanzadas",
-            attendancePercentage = "88% Asist.",
-            schedule = "Mar / Jue 10:00 - 12:00"
-        )
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        // Course Item 3
-        CourseCardItem(
-            code = "CS402",
-            codeBg = SurfaceContainerHigh,
-            codeTextColor = Tertiary,
-            sectionInfo = "Pab. Robótica • 22 alumnos",
-            courseTitle = "Inteligencia Artificial",
-            attendancePercentage = "95% Asist.",
-            schedule = "Vie 14:00 - 18:00"
-        )
+        displayCourses.forEach { course ->
+            CourseCardItem(
+                code = course.code.ifEmpty { "CS201" },
+                codeBg = SecondaryFixed,
+                codeTextColor = Secondary,
+                sectionInfo = course.section.ifEmpty { "Lab 4 • 28 alumnos" },
+                courseTitle = course.name,
+                attendancePercentage = "${course.attendanceRate.takeIf { it > 0 } ?: 92}% Asist.",
+                schedule = course.schedule.ifEmpty { "Lun / Mié 08:00 - 10:00" }
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+        }
     }
 }
 

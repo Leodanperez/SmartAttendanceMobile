@@ -2,24 +2,22 @@ package dev.leo.smartattendance.data.datasource.auth
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import kotlinx.coroutines.tasks.await
 
 class FirebaseAuthDataSource(private val auth: FirebaseAuth) {
-    fun login(email: String, password: String, onComplete: (FirebaseUser?, Exception?) -> Unit) {
-        auth.signInWithEmailAndPassword(email, password)
-            .addOnSuccessListener { result -> onComplete(result.user, null) }
-            .addOnFailureListener { exception -> onComplete(null, exception) }
+
+    suspend fun login(email: String, password: String): FirebaseUser? {
+        val result = auth.signInWithEmailAndPassword(email, password).await()
+        return result.user
     }
 
-    fun register(email: String, password: String, onComplete: (FirebaseUser?, Exception?) -> Unit) {
-        auth.createUserWithEmailAndPassword(email, password)
-            .addOnSuccessListener { result -> onComplete(result.user, null) }
-            .addOnFailureListener { exception -> onComplete(null, exception) }
+    suspend fun register(email: String, password: String): FirebaseUser? {
+        val result = auth.createUserWithEmailAndPassword(email, password).await()
+        return result.user
     }
 
-    fun sendPasswordReset(email: String, onComplete: (Boolean, Exception?) -> Unit) {
-        auth.sendPasswordResetEmail(email)
-            .addOnSuccessListener { onComplete(true, null) }
-            .addOnFailureListener { exception -> onComplete(false, exception) }
+    suspend fun sendPasswordReset(email: String) {
+        auth.sendPasswordResetEmail(email).await()
     }
 
     fun getCurrentUser(): FirebaseUser? = auth.currentUser
