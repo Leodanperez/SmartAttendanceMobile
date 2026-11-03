@@ -1,4 +1,5 @@
 package dev.leo.smartattendance.feature.auth
+import dev.leo.smartattendance.ui.theme.AppTheme
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
@@ -30,7 +31,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import dev.leo.smartattendance.ui.theme.Primary
 
 @Composable
 fun SignUpScreen(
@@ -143,7 +143,7 @@ fun SignUpScreen(
             },
             enabled = !isLoading,
             shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Primary),
+            colors = ButtonDefaults.buttonColors(containerColor = AppTheme.colors.primary),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp)
@@ -154,7 +154,7 @@ fun SignUpScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         TextButton(onClick = { onNavigateToLogin() }) {
-            Text("¿Ya tienes cuenta? Iniciar Sesión", color = Primary)
+            Text("¿Ya tienes cuenta? Iniciar Sesión", color = AppTheme.colors.primary)
         }
     }
 }

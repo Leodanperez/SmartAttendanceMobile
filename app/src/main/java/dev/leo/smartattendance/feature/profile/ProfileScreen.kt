@@ -1,4 +1,5 @@
 package dev.leo.smartattendance.feature.profile
+import dev.leo.smartattendance.ui.theme.AppTheme
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -19,7 +20,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ExitToApp
 import androidx.compose.material.icons.outlined.Badge
+import androidx.compose.material.icons.outlined.BrightnessAuto
+import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.Button
@@ -38,13 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.leo.smartattendance.domain.model.User
-import dev.leo.smartattendance.ui.theme.OnSurface
-import dev.leo.smartattendance.ui.theme.OnSurfaceVariant
-import dev.leo.smartattendance.ui.theme.Primary
-import dev.leo.smartattendance.ui.theme.Secondary
-import dev.leo.smartattendance.ui.theme.SecondaryFixed
-import dev.leo.smartattendance.ui.theme.SurfaceContainerHigh
-import dev.leo.smartattendance.ui.theme.SurfaceContainerLowest
+import dev.leo.smartattendance.ui.theme.ThemeMode
 
 @Composable
 fun ProfileScreen(
@@ -55,6 +53,8 @@ fun ProfileScreen(
         institutionalCode = "DOC-1029",
         role = dev.leo.smartattendance.domain.model.UserRole.TEACHER
     ),
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
+    onThemeChange: (ThemeMode) -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
     Column(
@@ -71,14 +71,14 @@ fun ProfileScreen(
             modifier = Modifier
                 .size(90.dp)
                 .clip(CircleShape)
-                .border(2.dp, Primary, CircleShape)
-                .background(SurfaceContainerHigh),
+                .border(2.dp, AppTheme.colors.primary, CircleShape)
+                .background(AppTheme.colors.surfaceContainerHigh),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Outlined.Person,
                 contentDescription = "Avatar",
-                tint = Primary,
+                tint = AppTheme.colors.primary,
                 modifier = Modifier.size(48.dp)
             )
         }
@@ -88,19 +88,19 @@ fun ProfileScreen(
         Text(
             text = user.fullName,
             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-            color = OnSurface
+            color = AppTheme.colors.onSurface
         )
 
         Spacer(modifier = Modifier.height(4.dp))
 
         Surface(
             shape = CircleShape,
-            color = SecondaryFixed
+            color = AppTheme.colors.secondaryFixed
         ) {
             Text(
                 text = user.role.name,
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                color = Secondary,
+                color = AppTheme.colors.secondary,
                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
             )
         }
@@ -110,7 +110,7 @@ fun ProfileScreen(
         // Info Card
         Card(
             shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = SurfaceContainerLowest),
+            colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainerLowest),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -139,7 +139,38 @@ fun ProfileScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Selector de tema
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainerLowest),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Apariencia",
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                    color = AppTheme.colors.onSurface
+                )
+                Text(
+                    text = "Tema de la aplicación",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AppTheme.colors.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    ThemeOption("Sistema", Icons.Outlined.BrightnessAuto, themeMode == ThemeMode.SYSTEM, Modifier.weight(1f)) { onThemeChange(ThemeMode.SYSTEM) }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    ThemeOption("Claro", Icons.Outlined.LightMode, themeMode == ThemeMode.LIGHT, Modifier.weight(1f)) { onThemeChange(ThemeMode.LIGHT) }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    ThemeOption("Oscuro", Icons.Outlined.DarkMode, themeMode == ThemeMode.DARK, Modifier.weight(1f)) { onThemeChange(ThemeMode.DARK) }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
 
         Button(
             onClick = onLogout,
@@ -161,6 +192,41 @@ fun ProfileScreen(
 }
 
 @Composable
+private fun ThemeOption(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(12.dp),
+        color = if (selected) AppTheme.colors.primaryFixed else AppTheme.colors.surfaceContainerHigh,
+        border = if (selected) androidx.compose.foundation.BorderStroke(1.5.dp, AppTheme.colors.primary) else null,
+        modifier = modifier
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(vertical = 12.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = if (selected) AppTheme.colors.primary else AppTheme.colors.onSurfaceVariant,
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                color = if (selected) AppTheme.colors.primary else AppTheme.colors.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
 fun ProfileInfoRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
@@ -174,13 +240,13 @@ fun ProfileInfoRow(
             modifier = Modifier
                 .size(36.dp)
                 .clip(CircleShape)
-                .background(SurfaceContainerHigh),
+                .background(AppTheme.colors.surfaceContainerHigh),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = Primary,
+                tint = AppTheme.colors.primary,
                 modifier = Modifier.size(18.dp)
             )
         }
@@ -191,12 +257,12 @@ fun ProfileInfoRow(
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
-                color = OnSurfaceVariant
+                color = AppTheme.colors.onSurfaceVariant
             )
             Text(
                 text = value,
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = OnSurface
+                color = AppTheme.colors.onSurface
             )
         }
     }

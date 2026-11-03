@@ -38,6 +38,7 @@ import dev.leo.smartattendance.feature.reports.ReportsScreen
 import dev.leo.smartattendance.feature.studenthome.StudentHomeScreen
 import dev.leo.smartattendance.feature.teacherhome.TeacherHomeScreen
 import dev.leo.smartattendance.ui.theme.SmartAttendanceMobileTheme
+import dev.leo.smartattendance.ui.theme.ThemeController
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -55,10 +56,11 @@ class MainActivity : ComponentActivity() {
         val firestoreDataSource = FirebaseFirestoreDataSource(db)
         val authRepository = AuthRepositoryImpl(authDataSource, firestoreDataSource)
         val courseRepository = CourseRepositoryImpl(firestoreDataSource)
+        val themeController = ThemeController(applicationContext)
 
         enableEdgeToEdge()
         setContent {
-            SmartAttendanceMobileTheme {
+            SmartAttendanceMobileTheme(mode = themeController.mode) {
                 var isShowingSplash by remember { mutableStateOf(true) }
                 var currentUser by remember { mutableStateOf<User?>(null) }
                 val scope = rememberCoroutineScope()
@@ -300,6 +302,8 @@ class MainActivity : ComponentActivity() {
                                         NavRoutes.Reports -> ReportsScreen()
                                         NavRoutes.Profile -> ProfileScreen(
                                             user = currentUser ?: User(role = effectiveRole),
+                                            themeMode = themeController.mode,
+                                            onThemeChange = { themeController.updateMode(it) },
                                             onLogout = {
                                                 authRepository.logout()
                                                 currentUser = null

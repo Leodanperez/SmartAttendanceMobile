@@ -1,4 +1,5 @@
 package dev.leo.smartattendance.feature.studenthome
+import dev.leo.smartattendance.ui.theme.AppTheme
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -45,15 +46,6 @@ import dev.leo.smartattendance.core.navigation.NavRoutes
 import dev.leo.smartattendance.domain.model.Course
 import dev.leo.smartattendance.domain.model.UserRole
 import dev.leo.smartattendance.feature.enrollment.EnrollCourseDialog
-import dev.leo.smartattendance.ui.theme.Emerald50
-import dev.leo.smartattendance.ui.theme.Emerald800
-import dev.leo.smartattendance.ui.theme.OnSurface
-import dev.leo.smartattendance.ui.theme.OnSurfaceVariant
-import dev.leo.smartattendance.ui.theme.Primary
-import dev.leo.smartattendance.ui.theme.PrimaryContainer
-import dev.leo.smartattendance.ui.theme.Secondary
-import dev.leo.smartattendance.ui.theme.SurfaceContainerHigh
-import dev.leo.smartattendance.ui.theme.SurfaceContainerLowest
 
 @Composable
 fun StudentHomeScreen(
@@ -96,12 +88,12 @@ fun StudentHomeScreen(
                     Text(
                         text = "PANEL DE ESTUDIANTE",
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = Secondary
+                        color = AppTheme.colors.secondary
                     )
                     Text(
                         text = "Hola, $studentName",
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        color = OnSurface
+                        color = AppTheme.colors.onSurface
                     )
                 }
             }
@@ -112,7 +104,7 @@ fun StudentHomeScreen(
             item {
                 Card(
                     shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = SurfaceContainerLowest),
+                    colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainerLowest),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -120,12 +112,12 @@ fun StudentHomeScreen(
                         Text(
                             text = "Asistencia del Día",
                             style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                            color = OnSurface
+                            color = AppTheme.colors.onSurface
                         )
                         Text(
                             text = "Escanea el código QR proyectado",
                             style = MaterialTheme.typography.bodySmall,
-                            color = OnSurfaceVariant
+                            color = AppTheme.colors.onSurfaceVariant
                         )
 
                         Spacer(modifier = Modifier.height(14.dp))
@@ -133,7 +125,7 @@ fun StudentHomeScreen(
                         Button(
                             onClick = { onNavigateToRoute(NavRoutes.Sessions) },
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryContainer),
+                            colors = ButtonDefaults.buttonColors(containerColor = AppTheme.colors.primaryContainer),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(48.dp)
@@ -162,7 +154,7 @@ fun StudentHomeScreen(
                     Text(
                         text = "Mis Cursos Inscritos",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = OnSurface
+                        color = AppTheme.colors.onSurface
                     )
 
                     OutlinedButton(
@@ -186,7 +178,7 @@ fun StudentHomeScreen(
                 item {
                     Surface(
                         shape = RoundedCornerShape(16.dp),
-                        color = SurfaceContainerLowest,
+                        color = AppTheme.colors.surfaceContainerLowest,
                         shadowElevation = 1.dp,
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -197,13 +189,13 @@ fun StudentHomeScreen(
                             Text(
                                 text = "Sin Cursos Inscritos",
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                color = OnSurface
+                                color = AppTheme.colors.onSurface
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = "Aún no estás inscrito en ninguna asignatura. Presiona 'Unirme a Curso' e ingresa el código proporcionado por tu docente.",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = OnSurfaceVariant,
+                                color = AppTheme.colors.onSurfaceVariant,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             )
                         }
@@ -243,7 +235,7 @@ fun StudentCourseCard(
 ) {
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = SurfaceContainerLowest,
+        color = AppTheme.colors.surfaceContainerLowest,
         shadowElevation = 1.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -255,12 +247,12 @@ fun StudentCourseCard(
             Column(modifier = Modifier.weight(1f)) {
                 Surface(
                     shape = CircleShape,
-                    color = SurfaceContainerHigh
+                    color = AppTheme.colors.surfaceContainerHigh
                 ) {
                     Text(
                         text = code,
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = Primary,
+                        color = AppTheme.colors.primary,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                     )
                 }
@@ -270,20 +262,20 @@ fun StudentCourseCard(
                 Text(
                     text = name,
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = OnSurface
+                    color = AppTheme.colors.onSurface
                 )
 
                 Text(
                     text = "Docente: $teacher",
                     style = MaterialTheme.typography.bodySmall,
-                    color = OnSurfaceVariant
+                    color = AppTheme.colors.onSurfaceVariant
                 )
             }
 
             val hasData = attendanceRate.endsWith("%")
             Surface(
                 shape = CircleShape,
-                color = if (hasData) Emerald50 else SurfaceContainerHigh
+                color = if (hasData) AppTheme.colors.successBg else AppTheme.colors.surfaceContainerHigh
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -293,7 +285,7 @@ fun StudentCourseCard(
                         Icon(
                             imageVector = Icons.Outlined.CheckCircle,
                             contentDescription = "Asistencia",
-                            tint = Emerald800,
+                            tint = AppTheme.colors.successText,
                             modifier = Modifier.size(14.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
@@ -301,7 +293,7 @@ fun StudentCourseCard(
                     Text(
                         text = attendanceRate,
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = if (hasData) Emerald800 else OnSurfaceVariant
+                        color = if (hasData) AppTheme.colors.successText else AppTheme.colors.onSurfaceVariant
                     )
                 }
             }

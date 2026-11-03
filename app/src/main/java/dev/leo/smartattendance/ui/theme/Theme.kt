@@ -1,78 +1,92 @@
 package dev.leo.smartattendance.ui.theme
 
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Primary,
-    secondary = Secondary,
-    tertiary = Tertiary,
-    background = Background,
-    surface = Surface,
-    onPrimary = OnPrimary,
-    onSecondary = OnPrimary,
-    onTertiary = OnPrimary,
-    onBackground = OnSurface,
-    onSurface = OnSurface,
-    onSurfaceVariant = OnSurfaceVariant,
-    outline = Outline,
-    outlineVariant = OutlineVariant,
-    error = ErrorColor,
-    errorContainer = ErrorContainer
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = Primary,
-    primaryContainer = PrimaryContainer,
-    onPrimary = OnPrimary,
-    onPrimaryContainer = OnPrimaryContainer,
-    secondary = Secondary,
-    secondaryContainer = SecondaryContainer,
-    onSecondary = OnPrimary,
-    tertiary = Tertiary,
-    tertiaryContainer = TertiaryContainer,
-    onTertiary = OnPrimary,
-    background = Background,
-    surface = Surface,
-    surfaceContainerLow = SurfaceContainerLow,
-    surfaceContainerLowest = SurfaceContainerLowest,
-    surfaceContainerHigh = SurfaceContainerHigh,
-    surfaceContainerHighest = SurfaceContainerHighest,
-    onBackground = OnSurface,
-    onSurface = OnSurface,
-    onSurfaceVariant = OnSurfaceVariant,
-    outline = Outline,
-    outlineVariant = OutlineVariant,
-    error = ErrorColor,
-    errorContainer = ErrorContainer
-)
+/** Esquema Material 3 derivado de la paleta de la app (para componentes M3 nativos). */
+private fun materialScheme(c: AppColors) =
+    if (c.isDark) {
+        darkColorScheme(
+            primary = c.primary,
+            primaryContainer = c.primaryContainer,
+            onPrimary = c.onPrimary,
+            secondary = c.secondary,
+            secondaryContainer = c.secondaryContainer,
+            background = c.background,
+            surface = c.surface,
+            surfaceContainerLowest = c.surfaceContainerLowest,
+            surfaceContainerLow = c.surfaceContainerLow,
+            surfaceContainerHigh = c.surfaceContainerHigh,
+            surfaceContainerHighest = c.surfaceContainerHighest,
+            onBackground = c.onSurface,
+            onSurface = c.onSurface,
+            onSurfaceVariant = c.onSurfaceVariant,
+            outline = c.outline,
+            outlineVariant = c.outlineVariant,
+            error = c.error,
+            errorContainer = c.errorContainer,
+        )
+    } else {
+        lightColorScheme(
+            primary = c.primary,
+            primaryContainer = c.primaryContainer,
+            onPrimary = c.onPrimary,
+            secondary = c.secondary,
+            secondaryContainer = c.secondaryContainer,
+            background = c.background,
+            surface = c.surface,
+            surfaceContainerLowest = c.surfaceContainerLowest,
+            surfaceContainerLow = c.surfaceContainerLow,
+            surfaceContainerHigh = c.surfaceContainerHigh,
+            surfaceContainerHighest = c.surfaceContainerHighest,
+            onBackground = c.onSurface,
+            onSurface = c.onSurface,
+            onSurfaceVariant = c.onSurfaceVariant,
+            outline = c.outline,
+            outlineVariant = c.outlineVariant,
+            error = c.error,
+            errorContainer = c.errorContainer,
+        )
+    }
 
 @Composable
 fun SmartAttendanceMobileTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = false, // Set false to preserve institutional branding colors
+    mode: ThemeMode = ThemeMode.SYSTEM,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
+    val darkTheme = when (mode) {
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+    }
+    val appColors = if (darkTheme) DarkAppColors else LightAppColors
+    val scheme = materialScheme(appColors)
 
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+    // Iconos de la barra de estado (hora, batería) legibles según el fondo.
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as? android.app.Activity)?.window
+            if (window != null) {
+                window.statusBarColor = appColors.surface.toArgb()
+                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            }
+        }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    CompositionLocalProvider(LocalAppColors provides appColors) {
+        MaterialTheme(
+            colorScheme = scheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }

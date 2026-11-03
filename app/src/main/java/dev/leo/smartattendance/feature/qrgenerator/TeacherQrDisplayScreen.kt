@@ -1,4 +1,5 @@
 package dev.leo.smartattendance.feature.qrgenerator
+import dev.leo.smartattendance.ui.theme.AppTheme
 
 import android.graphics.Bitmap
 import android.widget.Toast
@@ -54,13 +55,6 @@ import androidx.compose.ui.unit.sp
 import dev.leo.smartattendance.core.common.QrCodeGenerator
 import dev.leo.smartattendance.core.designsystem.SmartAttendanceHeader
 import dev.leo.smartattendance.domain.repository.CourseRepository
-import dev.leo.smartattendance.ui.theme.Emerald50
-import dev.leo.smartattendance.ui.theme.Emerald800
-import dev.leo.smartattendance.ui.theme.OnSurface
-import dev.leo.smartattendance.ui.theme.OnSurfaceVariant
-import dev.leo.smartattendance.ui.theme.Primary
-import dev.leo.smartattendance.ui.theme.SurfaceContainerHigh
-import dev.leo.smartattendance.ui.theme.SurfaceContainerLowest
 import kotlinx.coroutines.delay
 
 @Composable
@@ -113,7 +107,7 @@ fun TeacherQrDisplayScreen(
         ) {
             Card(
                 shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceContainerLowest),
+                colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainerLowest),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -123,12 +117,12 @@ fun TeacherQrDisplayScreen(
                 ) {
                     Surface(
                         shape = CircleShape,
-                        color = Emerald50
+                        color = AppTheme.colors.successBg
                     ) {
                         Text(
                             text = "SESIÓN ACTIVA - EN VIVO",
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = Emerald800,
+                            color = AppTheme.colors.successText,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
                         )
                     }
@@ -138,13 +132,13 @@ fun TeacherQrDisplayScreen(
                     Text(
                         text = courseName,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = OnSurface
+                        color = AppTheme.colors.onSurface
                     )
 
                     Text(
                         text = sessionTitle,
                         style = MaterialTheme.typography.bodySmall,
-                        color = OnSurfaceVariant
+                        color = AppTheme.colors.onSurfaceVariant
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -168,7 +162,7 @@ fun TeacherQrDisplayScreen(
                             imageVector = Icons.Outlined.QrCode,
                             contentDescription = "QR",
                             modifier = Modifier.size(100.dp),
-                            tint = Primary
+                            tint = AppTheme.colors.primary
                         )
                     }
 
@@ -184,25 +178,25 @@ fun TeacherQrDisplayScreen(
                             Icon(
                                 imageVector = Icons.Outlined.Timer,
                                 contentDescription = "Timer",
-                                tint = Primary,
+                                tint = AppTheme.colors.primary,
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = "Expira en $timeFormatted",
                                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                                color = OnSurface
+                                color = AppTheme.colors.onSurface
                             )
                         }
 
                         Surface(
                             shape = CircleShape,
-                            color = SurfaceContainerHigh
+                            color = AppTheme.colors.surfaceContainerHigh
                         ) {
                             Text(
                                 text = "$presentCount / 24 Registrados",
                                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                color = Primary,
+                                color = AppTheme.colors.primary,
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                             )
                         }

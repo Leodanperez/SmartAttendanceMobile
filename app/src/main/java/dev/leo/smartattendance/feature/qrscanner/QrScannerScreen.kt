@@ -1,4 +1,5 @@
 package dev.leo.smartattendance.feature.qrscanner
+import dev.leo.smartattendance.ui.theme.AppTheme
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -91,29 +92,14 @@ import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import dev.leo.smartattendance.core.designsystem.SmartAttendanceHeader
-import dev.leo.smartattendance.ui.theme.Emerald50
-import dev.leo.smartattendance.ui.theme.Emerald800
-import dev.leo.smartattendance.ui.theme.OnSurface
-import dev.leo.smartattendance.ui.theme.OnSurfaceVariant
-import dev.leo.smartattendance.ui.theme.Outline
-import dev.leo.smartattendance.ui.theme.Primary
-import dev.leo.smartattendance.ui.theme.PrimaryContainer
-import dev.leo.smartattendance.ui.theme.Secondary
-import dev.leo.smartattendance.ui.theme.SecondaryContainer
-import dev.leo.smartattendance.ui.theme.SecondaryFixed
 import dev.leo.smartattendance.ui.theme.SmartAttendanceMobileTheme
-import dev.leo.smartattendance.ui.theme.SurfaceContainerHigh
-import dev.leo.smartattendance.ui.theme.SurfaceContainerLow
-import dev.leo.smartattendance.ui.theme.SurfaceContainerLowest
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.Executors
 
-// Los diálogos de resultado siempre en modo claro (independiente del tema del dispositivo).
-private val DialogSurface = Color.White
-private val DialogOnSurface = Color(0xFF0F172A)
+// Los diálogos de resultado respetan el tema claro/oscuro de la app.
 
 data class QrPayload(
     val sessionId: String,
@@ -324,7 +310,7 @@ fun QrScannerScreen(
                                     modifier = Modifier
                                         .size(8.dp)
                                         .clip(CircleShape)
-                                        .background(SecondaryContainer)
+                                        .background(AppTheme.colors.secondaryContainer)
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
@@ -344,13 +330,13 @@ fun QrScannerScreen(
                                 .size(42.dp)
                                 .clip(CircleShape)
                                 .background(
-                                    if (isFlashOn) SecondaryContainer else Color.White.copy(alpha = 0.15f)
+                                    if (isFlashOn) AppTheme.colors.secondaryContainer else Color.White.copy(alpha = 0.15f)
                                 )
                         ) {
                             Icon(
                                 imageVector = if (isFlashOn) Icons.Outlined.FlashlightOn else Icons.Outlined.FlashlightOff,
                                 contentDescription = "Linterna",
-                                tint = if (isFlashOn) OnSurface else Color.White
+                                tint = if (isFlashOn) AppTheme.colors.onSurface else Color.White
                             )
                         }
                     }
@@ -367,6 +353,8 @@ fun QrScannerScreen(
                         label = "laserY"
                     )
 
+                    // Color leído en contexto composable para usarlo dentro del Canvas.
+                    val reticleColor = AppTheme.colors.secondaryContainer
                     Box(
                         modifier = Modifier
                             .size(220.dp)
@@ -377,7 +365,7 @@ fun QrScannerScreen(
                             val strokeWidth = 3.5.dp.toPx()
                             val bracketSize = 28.dp.toPx()
                             val cornerRadius = 16.dp.toPx()
-                            val bracketColor = SecondaryContainer
+                            val bracketColor = reticleColor
 
                             // Top-Left
                             drawArc(
@@ -433,7 +421,7 @@ fun QrScannerScreen(
 
                             // Laser Sweep Line
                             drawLine(
-                                color = SecondaryContainer.copy(alpha = 0.85f),
+                                color = reticleColor.copy(alpha = 0.85f),
                                 start = Offset(12.dp.toPx(), laserY.dp.toPx()),
                                 end = Offset(size.width - 12.dp.toPx(), laserY.dp.toPx()),
                                 strokeWidth = 2.5.dp.toPx()
@@ -443,7 +431,7 @@ fun QrScannerScreen(
                         Icon(
                             imageVector = Icons.Outlined.QrCodeScanner,
                             contentDescription = "Target",
-                            tint = SecondaryContainer.copy(alpha = 0.25f),
+                            tint = AppTheme.colors.secondaryContainer.copy(alpha = 0.25f),
                             modifier = Modifier
                                 .size(48.dp)
                                 .align(Alignment.Center)
@@ -480,7 +468,7 @@ fun QrScannerScreen(
                                     Icon(
                                         imageVector = Icons.Outlined.PinDrop,
                                         contentDescription = "GPS",
-                                        tint = SecondaryContainer,
+                                        tint = AppTheme.colors.secondaryContainer,
                                         modifier = Modifier.size(12.dp)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
@@ -503,7 +491,7 @@ fun QrScannerScreen(
                                     Icon(
                                         imageVector = Icons.Outlined.Security,
                                         contentDescription = "Seguridad",
-                                        tint = SecondaryContainer,
+                                        tint = AppTheme.colors.secondaryContainer,
                                         modifier = Modifier.size(12.dp)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
@@ -533,7 +521,7 @@ fun QrScannerScreen(
                         )
                         Button(
                             onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) },
-                            colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                            colors = ButtonDefaults.buttonColors(containerColor = AppTheme.colors.primary)
                         ) {
                             Text("Conceder Permiso", color = Color.White)
                         }
@@ -550,7 +538,7 @@ fun QrScannerScreen(
                 // Instant Auto-Submit Information Notice
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    color = SurfaceContainerLow,
+                    color = AppTheme.colors.surfaceContainerLow,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -561,13 +549,13 @@ fun QrScannerScreen(
                             modifier = Modifier
                                 .size(38.dp)
                                 .clip(CircleShape)
-                                .background(SecondaryFixed),
+                                .background(AppTheme.colors.secondaryFixed),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.Bolt,
                                 contentDescription = "Rápido",
-                                tint = Secondary,
+                                tint = AppTheme.colors.secondary,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -578,12 +566,12 @@ fun QrScannerScreen(
                             Text(
                                 text = "Envío automático e instantáneo",
                                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                                color = OnSurface
+                                color = AppTheme.colors.onSurface
                             )
                             Text(
                                 text = "No necesitas tocar botones; registra tu asistencia al detectar.",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = OnSurfaceVariant,
+                                color = AppTheme.colors.onSurfaceVariant,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -596,7 +584,7 @@ fun QrScannerScreen(
                 // Classroom Session Context Card
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    color = SurfaceContainerLow,
+                    color = AppTheme.colors.surfaceContainerLow,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -612,7 +600,7 @@ fun QrScannerScreen(
                                 modifier = Modifier
                                     .size(38.dp)
                                     .clip(RoundedCornerShape(10.dp))
-                                    .background(PrimaryContainer),
+                                    .background(AppTheme.colors.primaryContainer),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
@@ -628,14 +616,14 @@ fun QrScannerScreen(
                                 Text(
                                     text = activeCourseName,
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = OnSurface,
+                                    color = AppTheme.colors.onSurface,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
                                     text = "$activeTeacherName • Sesión Activa",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = OnSurfaceVariant,
+                                    color = AppTheme.colors.onSurfaceVariant,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -646,7 +634,7 @@ fun QrScannerScreen(
 
                         Surface(
                             shape = CircleShape,
-                            color = SurfaceContainerLowest
+                            color = AppTheme.colors.surfaceContainerLowest
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -656,13 +644,13 @@ fun QrScannerScreen(
                                     modifier = Modifier
                                         .size(6.dp)
                                         .clip(CircleShape)
-                                        .background(Secondary)
+                                        .background(AppTheme.colors.secondary)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = "EN VIVO",
                                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = OnSurface
+                                    color = AppTheme.colors.onSurface
                                 )
                             }
                         }
@@ -671,14 +659,14 @@ fun QrScannerScreen(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Flashlight Toggle Primary Pill Button
+                // Flashlight Toggle AppTheme.colors.primary Pill Button
                 Button(
                     onClick = {
                         isFlashOn = !isFlashOn
                         activeCamera?.cameraControl?.enableTorch(isFlashOn)
                     },
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryContainer),
+                    colors = ButtonDefaults.buttonColors(containerColor = AppTheme.colors.primaryContainer),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp)
@@ -702,7 +690,7 @@ fun QrScannerScreen(
                 // Manual Backup Code / Assistance Action
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = SurfaceContainerHigh,
+                    color = AppTheme.colors.surfaceContainerHigh,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp)
@@ -716,14 +704,14 @@ fun QrScannerScreen(
                         Icon(
                             imageVector = Icons.Outlined.Keyboard,
                             contentDescription = "Teclado",
-                            tint = Primary,
+                            tint = AppTheme.colors.primary,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Ingresar código de respaldo o ayuda",
                             style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                            color = Primary
+                            color = AppTheme.colors.primary
                         )
                     }
                 }
@@ -738,7 +726,7 @@ fun QrScannerScreen(
                     Icon(
                         imageVector = Icons.Outlined.VerifiedUser,
                         contentDescription = "Verificado",
-                        tint = Outline,
+                        tint = AppTheme.colors.outline,
                         modifier = Modifier
                             .size(16.dp)
                             .padding(top = 2.dp)
@@ -747,7 +735,7 @@ fun QrScannerScreen(
                     Text(
                         text = "SmartAttendance utiliza cifrado de payload temporal y validación cruzada de red institucional para certificar tu presencia física en el aula.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Outline
+                        color = AppTheme.colors.outline
                     )
                 }
             }
@@ -901,22 +889,22 @@ fun AttendanceResultDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = DialogSurface,
-        titleContentColor = DialogOnSurface,
-        textContentColor = DialogOnSurface,
+        containerColor = AppTheme.colors.surfaceContainerLowest,
+        titleContentColor = AppTheme.colors.onSurface,
+        textContentColor = AppTheme.colors.onSurface,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(Emerald50),
+                        .background(AppTheme.colors.successBg),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.CheckCircle,
                         contentDescription = "Éxito",
-                        tint = Emerald800,
+                        tint = AppTheme.colors.successText,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -924,7 +912,7 @@ fun AttendanceResultDialog(
                 Text(
                     text = "Asistencia Registrada",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = DialogOnSurface
+                    color = AppTheme.colors.onSurface
                 )
             }
         },
@@ -933,21 +921,21 @@ fun AttendanceResultDialog(
                 Text(
                     text = "Curso: ${payload.courseName}",
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                    color = DialogOnSurface
+                    color = AppTheme.colors.onSurface
                 )
                 if (payload.title.isNotBlank()) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Sesión: ${payload.title}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = DialogOnSurface
+                        color = AppTheme.colors.onSurface
                     )
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "Estado: PRESENTE (Verificado)",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Emerald800
+                    color = AppTheme.colors.successText
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
@@ -960,7 +948,7 @@ fun AttendanceResultDialog(
         confirmButton = {
             Button(
                 onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                colors = ButtonDefaults.buttonColors(containerColor = AppTheme.colors.primary),
                 shape = RoundedCornerShape(10.dp)
             ) {
                 Text("Aceptar", color = Color.White)
@@ -976,22 +964,22 @@ fun AttendanceErrorDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = DialogSurface,
-        titleContentColor = DialogOnSurface,
-        textContentColor = DialogOnSurface,
+        containerColor = AppTheme.colors.surfaceContainerLowest,
+        titleContentColor = AppTheme.colors.onSurface,
+        textContentColor = AppTheme.colors.onSurface,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFFEE2E2)),
+                        .background(AppTheme.colors.errorContainer),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Close,
                         contentDescription = "Error",
-                        tint = Color(0xFFB91C1C),
+                        tint = AppTheme.colors.error,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -999,17 +987,17 @@ fun AttendanceErrorDialog(
                 Text(
                     text = "No se registró",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = DialogOnSurface
+                    color = AppTheme.colors.onSurface
                 )
             }
         },
         text = {
-            Text(text = message, style = MaterialTheme.typography.bodyMedium, color = DialogOnSurface)
+            Text(text = message, style = MaterialTheme.typography.bodyMedium, color = AppTheme.colors.onSurface)
         },
         confirmButton = {
             Button(
                 onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                colors = ButtonDefaults.buttonColors(containerColor = AppTheme.colors.primary),
                 shape = RoundedCornerShape(10.dp)
             ) {
                 Text("Entendido", color = Color.White)
@@ -1025,22 +1013,22 @@ fun AttendanceInfoDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = DialogSurface,
-        titleContentColor = DialogOnSurface,
-        textContentColor = DialogOnSurface,
+        containerColor = AppTheme.colors.surfaceContainerLowest,
+        titleContentColor = AppTheme.colors.onSurface,
+        textContentColor = AppTheme.colors.onSurface,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(PrimaryContainer.copy(alpha = 0.15f)),
+                        .background(AppTheme.colors.primaryContainer.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.CheckCircle,
                         contentDescription = "Información",
-                        tint = Primary,
+                        tint = AppTheme.colors.primary,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -1048,17 +1036,17 @@ fun AttendanceInfoDialog(
                 Text(
                     text = "Asistencia ya registrada",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = DialogOnSurface
+                    color = AppTheme.colors.onSurface
                 )
             }
         },
         text = {
-            Text(text = message, style = MaterialTheme.typography.bodyMedium, color = DialogOnSurface)
+            Text(text = message, style = MaterialTheme.typography.bodyMedium, color = AppTheme.colors.onSurface)
         },
         confirmButton = {
             Button(
                 onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                colors = ButtonDefaults.buttonColors(containerColor = AppTheme.colors.primary),
                 shape = RoundedCornerShape(10.dp)
             ) {
                 Text("Aceptar", color = Color.White)
@@ -1081,7 +1069,7 @@ fun ManualCodeDialog(
             Text(
                 text = "Código de Respaldo",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = OnSurface
+                color = AppTheme.colors.onSurface
             )
         },
         text = {
@@ -1112,7 +1100,7 @@ fun ManualCodeDialog(
                         Toast.makeText(context, "Ingresa un código válido", Toast.LENGTH_SHORT).show()
                     }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                colors = ButtonDefaults.buttonColors(containerColor = AppTheme.colors.primary),
                 shape = RoundedCornerShape(10.dp)
             ) {
                 Text("Validar", color = Color.White)

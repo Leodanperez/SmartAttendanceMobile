@@ -1,4 +1,5 @@
 package dev.leo.smartattendance.feature.teacherhome
+import dev.leo.smartattendance.ui.theme.AppTheme
 
 import android.widget.Toast
 import androidx.compose.foundation.Canvas
@@ -60,28 +61,7 @@ import androidx.compose.ui.unit.sp
 import dev.leo.smartattendance.core.designsystem.SmartAttendanceBottomBar
 import dev.leo.smartattendance.core.designsystem.SmartAttendanceHeader
 import dev.leo.smartattendance.core.navigation.NavRoutes
-import dev.leo.smartattendance.ui.theme.Amber50
-import dev.leo.smartattendance.ui.theme.Amber900
-import dev.leo.smartattendance.ui.theme.Blue50
-import dev.leo.smartattendance.ui.theme.Blue800
-import dev.leo.smartattendance.ui.theme.Blue600
-import dev.leo.smartattendance.ui.theme.Emerald50
-import dev.leo.smartattendance.ui.theme.Emerald600
-import dev.leo.smartattendance.ui.theme.Emerald800
-import dev.leo.smartattendance.ui.theme.OnSurface
-import dev.leo.smartattendance.ui.theme.OnSurfaceVariant
-import dev.leo.smartattendance.ui.theme.Outline
-import dev.leo.smartattendance.ui.theme.Primary
-import dev.leo.smartattendance.ui.theme.PrimaryContainer
-import dev.leo.smartattendance.ui.theme.PrimaryFixed
-import dev.leo.smartattendance.ui.theme.Secondary
-import dev.leo.smartattendance.ui.theme.SecondaryFixed
 import dev.leo.smartattendance.ui.theme.SmartAttendanceMobileTheme
-import dev.leo.smartattendance.ui.theme.SurfaceContainerHigh
-import dev.leo.smartattendance.ui.theme.SurfaceContainerHighest
-import dev.leo.smartattendance.ui.theme.SurfaceContainerLow
-import dev.leo.smartattendance.ui.theme.SurfaceContainerLowest
-import dev.leo.smartattendance.ui.theme.Tertiary
 
 @Composable
 fun TeacherHomeScreen(
@@ -199,12 +179,12 @@ fun GreetingSection(userName: String) {
                 Text(
                     text = "PANEL ACADÉMICO",
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                    color = Secondary
+                    color = AppTheme.colors.secondary
                 )
                 Text(
                     text = "Buenos días, $userName",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = OnSurface
+                    color = AppTheme.colors.onSurface
                 )
             }
 
@@ -212,13 +192,13 @@ fun GreetingSection(userName: String) {
                 modifier = Modifier
                     .size(42.dp)
                     .clip(CircleShape)
-                    .background(SurfaceContainerHigh),
+                    .background(AppTheme.colors.surfaceContainerHigh),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Outlined.CalendarToday,
                     contentDescription = "Fecha",
-                    tint = Primary,
+                    tint = AppTheme.colors.primary,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -232,24 +212,24 @@ fun GreetingSection(userName: String) {
             Icon(
                 imageVector = Icons.Outlined.Apartment,
                 contentDescription = "Facultad",
-                tint = Tertiary,
+                tint = AppTheme.colors.primary,
                 modifier = Modifier.size(16.dp)
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
                 text = "Facultad de Ingeniería",
                 style = MaterialTheme.typography.bodySmall,
-                color = OnSurfaceVariant
+                color = AppTheme.colors.onSurfaceVariant
             )
             Text(
                 text = " • ",
                 style = MaterialTheme.typography.bodySmall,
-                color = Outline
+                color = AppTheme.colors.outline
             )
             Text(
                 text = "Semestre 2024-II",
                 style = MaterialTheme.typography.bodySmall,
-                color = OnSurfaceVariant
+                color = AppTheme.colors.onSurfaceVariant
             )
         }
     }
@@ -259,7 +239,7 @@ fun GreetingSection(userName: String) {
 fun ActiveSessionCard(onVerQrClick: () -> Unit) {
     Card(
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = SurfaceContainerLowest),
+        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainerLowest),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = Modifier
             .fillMaxWidth()
@@ -276,12 +256,12 @@ fun ActiveSessionCard(onVerQrClick: () -> Unit) {
             ) {
                 Surface(
                     shape = CircleShape,
-                    color = SurfaceContainerHigh
+                    color = AppTheme.colors.surfaceContainerHigh
                 ) {
                     Text(
                         text = "AULA Magna B-201",
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                        color = OnSurface,
+                        color = AppTheme.colors.onSurface,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                     )
                 }
@@ -289,7 +269,7 @@ fun ActiveSessionCard(onVerQrClick: () -> Unit) {
                 // Live Badge
                 Surface(
                     shape = CircleShape,
-                    color = Emerald50
+                    color = AppTheme.colors.successBg
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -299,13 +279,13 @@ fun ActiveSessionCard(onVerQrClick: () -> Unit) {
                             modifier = Modifier
                                 .size(8.dp)
                                 .clip(CircleShape)
-                                .background(Emerald600)
+                                .background(AppTheme.colors.successText)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "EN VIVO",
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = Emerald800
+                            color = AppTheme.colors.successText
                         )
                     }
                 }
@@ -317,7 +297,7 @@ fun ActiveSessionCard(onVerQrClick: () -> Unit) {
             Text(
                 text = "Algoritmos y Estructuras de Datos",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = OnSurface
+                color = AppTheme.colors.onSurface
             )
 
             Row(
@@ -327,24 +307,24 @@ fun ActiveSessionCard(onVerQrClick: () -> Unit) {
                 Text(
                     text = "Grupo B",
                     style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-                    color = Primary
+                    color = AppTheme.colors.primary
                 )
                 Text(
                     text = " • ",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Outline
+                    color = AppTheme.colors.outline
                 )
                 Icon(
                     imageVector = Icons.Outlined.Timer,
                     contentDescription = "Timer",
-                    tint = Tertiary,
+                    tint = AppTheme.colors.primary,
                     modifier = Modifier.size(14.dp)
                 )
                 Spacer(modifier = Modifier.width(3.dp))
                 Text(
                     text = "En curso (hace 12 min)",
                     style = MaterialTheme.typography.bodySmall,
-                    color = OnSurfaceVariant
+                    color = AppTheme.colors.onSurfaceVariant
                 )
             }
 
@@ -353,7 +333,7 @@ fun ActiveSessionCard(onVerQrClick: () -> Unit) {
             // Roster Progress Metric & Circular Ring Gauge
             Surface(
                 shape = RoundedCornerShape(14.dp),
-                color = SurfaceContainerLow,
+                color = AppTheme.colors.surfaceContainerLow,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -368,12 +348,12 @@ fun ActiveSessionCard(onVerQrClick: () -> Unit) {
                             Text(
                                 text = "18",
                                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                                color = OnSurface
+                                color = AppTheme.colors.onSurface
                             )
                             Text(
                                 text = " / 24 estudiantes",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = OnSurfaceVariant,
+                                color = AppTheme.colors.onSurfaceVariant,
                                 modifier = Modifier.padding(bottom = 2.dp, start = 2.dp)
                             )
                         }
@@ -381,15 +361,15 @@ fun ActiveSessionCard(onVerQrClick: () -> Unit) {
                         Text(
                             text = "75% quórum verificado",
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                            color = Secondary
+                            color = AppTheme.colors.secondary
                         )
 
                         Spacer(modifier = Modifier.height(6.dp))
 
                         LinearProgressIndicator(
                             progress = { 0.75f },
-                            color = PrimaryContainer,
-                            trackColor = SurfaceContainerHighest,
+                            color = AppTheme.colors.primaryContainer,
+                            trackColor = AppTheme.colors.surfaceContainerHighest,
                             strokeCap = StrokeCap.Round,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -401,6 +381,8 @@ fun ActiveSessionCard(onVerQrClick: () -> Unit) {
                     Spacer(modifier = Modifier.width(16.dp))
 
                     // Circular Progress Ring Gauge
+                    val trackColor = AppTheme.colors.surfaceContainerHighest
+                    val progressColor = AppTheme.colors.primaryContainer
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier.size(52.dp)
@@ -408,11 +390,11 @@ fun ActiveSessionCard(onVerQrClick: () -> Unit) {
                         Canvas(modifier = Modifier.fillMaxSize()) {
                             val stroke = 10f
                             drawCircle(
-                                color = SurfaceContainerHighest,
+                                color = trackColor,
                                 style = Stroke(width = stroke)
                             )
                             drawArc(
-                                color = PrimaryContainer,
+                                color = progressColor,
                                 startAngle = -90f,
                                 sweepAngle = 360f * 0.75f,
                                 useCenter = false,
@@ -422,7 +404,7 @@ fun ActiveSessionCard(onVerQrClick: () -> Unit) {
                         Text(
                             text = "75%",
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = OnSurface
+                            color = AppTheme.colors.onSurface
                         )
                     }
                 }
@@ -435,7 +417,7 @@ fun ActiveSessionCard(onVerQrClick: () -> Unit) {
                 onClick = onVerQrClick,
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = PrimaryContainer,
+                    containerColor = AppTheme.colors.primaryContainer,
                     contentColor = Color.White
                 ),
                 modifier = Modifier
@@ -500,12 +482,12 @@ fun QuickActionsGrid(
             Text(
                 text = "Acciones Rápidas",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = OnSurface
+                color = AppTheme.colors.onSurface
             )
             Text(
                 text = "Accesos frecuentes",
                 style = MaterialTheme.typography.labelSmall,
-                color = Secondary
+                color = AppTheme.colors.secondary
             )
         }
 
@@ -515,10 +497,10 @@ fun QuickActionsGrid(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // 1. Nueva Sesión (Primary Highlight)
+            // 1. Nueva Sesión (AppTheme.colors.primary Highlight)
             Surface(
                 shape = RoundedCornerShape(16.dp),
-                color = Primary,
+                color = AppTheme.colors.primary,
                 shadowElevation = 1.dp,
                 modifier = Modifier
                     .weight(1f)
@@ -553,7 +535,7 @@ fun QuickActionsGrid(
                         Text(
                             text = "Código dinámico",
                             style = MaterialTheme.typography.labelSmall,
-                            color = PrimaryFixed.copy(alpha = 0.9f)
+                            color = AppTheme.colors.primaryFixed.copy(alpha = 0.9f)
                         )
                     }
                 }
@@ -562,7 +544,7 @@ fun QuickActionsGrid(
             // 2. Mis Cursos
             Surface(
                 shape = RoundedCornerShape(16.dp),
-                color = SurfaceContainerLowest,
+                color = AppTheme.colors.surfaceContainerLowest,
                 shadowElevation = 1.dp,
                 modifier = Modifier
                     .weight(1f)
@@ -577,13 +559,13 @@ fun QuickActionsGrid(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(SurfaceContainerHigh),
+                            .background(AppTheme.colors.surfaceContainerHigh),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.MenuBook,
                             contentDescription = "Mis Cursos",
-                            tint = Secondary,
+                            tint = AppTheme.colors.secondary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -592,12 +574,12 @@ fun QuickActionsGrid(
                         Text(
                             text = "Mis Cursos",
                             style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                            color = OnSurface
+                            color = AppTheme.colors.onSurface
                         )
                         Text(
                             text = "3 activos asignados",
                             style = MaterialTheme.typography.labelSmall,
-                            color = OnSurfaceVariant
+                            color = AppTheme.colors.onSurfaceVariant
                         )
                     }
                 }
@@ -613,7 +595,7 @@ fun QuickActionsGrid(
             // 3. Reportes
             Surface(
                 shape = RoundedCornerShape(16.dp),
-                color = SurfaceContainerLowest,
+                color = AppTheme.colors.surfaceContainerLowest,
                 shadowElevation = 1.dp,
                 modifier = Modifier
                     .weight(1f)
@@ -628,13 +610,13 @@ fun QuickActionsGrid(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(PrimaryFixed),
+                            .background(AppTheme.colors.primaryFixed),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Insights,
                             contentDescription = "Reportes",
-                            tint = Primary,
+                            tint = AppTheme.colors.primary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -643,12 +625,12 @@ fun QuickActionsGrid(
                         Text(
                             text = "Reportes",
                             style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                            color = OnSurface
+                            color = AppTheme.colors.onSurface
                         )
                         Text(
                             text = "Resumen semanal",
                             style = MaterialTheme.typography.labelSmall,
-                            color = OnSurfaceVariant
+                            color = AppTheme.colors.onSurfaceVariant
                         )
                     }
                 }
@@ -657,7 +639,7 @@ fun QuickActionsGrid(
             // 4. Ajustes
             Surface(
                 shape = RoundedCornerShape(16.dp),
-                color = SurfaceContainerLowest,
+                color = AppTheme.colors.surfaceContainerLowest,
                 shadowElevation = 1.dp,
                 modifier = Modifier
                     .weight(1f)
@@ -672,13 +654,13 @@ fun QuickActionsGrid(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(SecondaryFixed),
+                            .background(AppTheme.colors.secondaryFixed),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Tune,
                             contentDescription = "Ajustes",
-                            tint = Secondary,
+                            tint = AppTheme.colors.secondary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -687,12 +669,12 @@ fun QuickActionsGrid(
                         Text(
                             text = "Ajustes",
                             style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                            color = OnSurface
+                            color = AppTheme.colors.onSurface
                         )
                         Text(
                             text = "Tolerancia y reglas",
                             style = MaterialTheme.typography.labelSmall,
-                            color = OnSurfaceVariant
+                            color = AppTheme.colors.onSurfaceVariant
                         )
                     }
                 }
@@ -726,17 +708,17 @@ fun AssignedCoursesSection(
                 Text(
                     text = "Cursos Asignados",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = OnSurface
+                    color = AppTheme.colors.onSurface
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Surface(
                     shape = CircleShape,
-                    color = SurfaceContainerHighest
+                    color = AppTheme.colors.surfaceContainerHighest
                 ) {
                     Text(
                         text = "${displayCourses.size}",
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = OnSurfaceVariant,
+                        color = AppTheme.colors.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                     )
                 }
@@ -749,12 +731,12 @@ fun AssignedCoursesSection(
                 Text(
                     text = "Ver todos",
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = Primary
+                    color = AppTheme.colors.primary
                 )
                 Icon(
                     imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                     contentDescription = "Ver todos",
-                    tint = Primary,
+                    tint = AppTheme.colors.primary,
                     modifier = Modifier.size(16.dp)
                 )
             }
@@ -765,8 +747,8 @@ fun AssignedCoursesSection(
         displayCourses.forEach { course ->
             CourseCardItem(
                 code = course.code.ifEmpty { "CS201" },
-                codeBg = SecondaryFixed,
-                codeTextColor = Secondary,
+                codeBg = AppTheme.colors.secondaryFixed,
+                codeTextColor = AppTheme.colors.secondary,
                 sectionInfo = course.section.ifEmpty { "Lab 4 • 28 alumnos" },
                 courseTitle = course.name,
                 attendancePercentage = "${course.attendanceRate.takeIf { it > 0 } ?: 92}% Asist.",
@@ -789,7 +771,7 @@ fun CourseCardItem(
 ) {
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = SurfaceContainerLowest,
+        color = AppTheme.colors.surfaceContainerLowest,
         shadowElevation = 1.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -818,7 +800,7 @@ fun CourseCardItem(
                         Text(
                             text = sectionInfo,
                             style = MaterialTheme.typography.bodySmall,
-                            color = OnSurfaceVariant,
+                            color = AppTheme.colors.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -829,7 +811,7 @@ fun CourseCardItem(
                     Text(
                         text = courseTitle,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = OnSurface,
+                        color = AppTheme.colors.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -837,12 +819,12 @@ fun CourseCardItem(
 
                 Surface(
                     shape = CircleShape,
-                    color = Emerald50
+                    color = AppTheme.colors.successBg
                 ) {
                     Text(
                         text = attendancePercentage,
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = Emerald800,
+                        color = AppTheme.colors.successText,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                     )
                 }
@@ -859,20 +841,20 @@ fun CourseCardItem(
                     Icon(
                         imageVector = Icons.Outlined.Schedule,
                         contentDescription = "Horario",
-                        tint = Tertiary,
+                        tint = AppTheme.colors.primary,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = schedule,
                         style = MaterialTheme.typography.bodySmall,
-                        color = OnSurfaceVariant
+                        color = AppTheme.colors.onSurfaceVariant
                     )
                 }
 
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = SurfaceContainerHigh,
+                    color = AppTheme.colors.surfaceContainerHigh,
                     modifier = Modifier.clickable { }
                 ) {
                     Row(
@@ -882,13 +864,13 @@ fun CourseCardItem(
                         Text(
                             text = "Detalle",
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                            color = Primary
+                            color = AppTheme.colors.primary
                         )
                         Spacer(modifier = Modifier.width(2.dp))
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                             contentDescription = "Detalle",
-                            tint = Primary,
+                            tint = AppTheme.colors.primary,
                             modifier = Modifier.size(14.dp)
                         )
                     }
@@ -913,12 +895,12 @@ fun RecentActivitySection() {
             Text(
                 text = "Actividad Reciente",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = OnSurface
+                color = AppTheme.colors.onSurface
             )
             Text(
                 text = "Hoy",
                 style = MaterialTheme.typography.labelSmall,
-                color = OnSurfaceVariant
+                color = AppTheme.colors.onSurfaceVariant
             )
         }
 
@@ -926,7 +908,7 @@ fun RecentActivitySection() {
 
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = SurfaceContainerLowest,
+            color = AppTheme.colors.surfaceContainerLowest,
             shadowElevation = 1.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -942,13 +924,13 @@ fun RecentActivitySection() {
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
-                            .background(SurfaceContainerHigh),
+                            .background(AppTheme.colors.surfaceContainerHigh),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.TaskAlt,
                             contentDescription = "Task",
-                            tint = Primary,
+                            tint = AppTheme.colors.primary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -963,7 +945,7 @@ fun RecentActivitySection() {
                             Text(
                                 text = "Sesión cerrada: Bases de Datos",
                                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                                color = OnSurface,
+                                color = AppTheme.colors.onSurface,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.weight(1f)
@@ -971,14 +953,14 @@ fun RecentActivitySection() {
                             Text(
                                 text = "11:45",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = OnSurfaceVariant
+                                color = AppTheme.colors.onSurfaceVariant
                             )
                         }
 
                         Text(
                             text = "29/32 presentes, con 2 registros catalogados en tardanza.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = OnSurfaceVariant,
+                            color = AppTheme.colors.onSurfaceVariant,
                             modifier = Modifier.padding(top = 2.dp)
                         )
 
@@ -987,7 +969,7 @@ fun RecentActivitySection() {
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             Surface(
                                 shape = CircleShape,
-                                color = Emerald50
+                                color = AppTheme.colors.successBg
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
@@ -997,20 +979,20 @@ fun RecentActivitySection() {
                                         modifier = Modifier
                                             .size(6.dp)
                                             .clip(CircleShape)
-                                            .background(Emerald600)
+                                            .background(AppTheme.colors.successText)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
                                         text = "29 Presentes",
                                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                        color = Emerald800
+                                        color = AppTheme.colors.successText
                                     )
                                 }
                             }
 
                             Surface(
                                 shape = CircleShape,
-                                color = Amber50
+                                color = AppTheme.colors.warningBg
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
@@ -1020,13 +1002,13 @@ fun RecentActivitySection() {
                                         modifier = Modifier
                                             .size(6.dp)
                                             .clip(CircleShape)
-                                            .background(Amber900)
+                                            .background(AppTheme.colors.warningText)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
                                         text = "2 Tardanzas",
                                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                        color = Amber900
+                                        color = AppTheme.colors.warningText
                                     )
                                 }
                             }
@@ -1039,7 +1021,7 @@ fun RecentActivitySection() {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(1.dp)
-                        .background(SurfaceContainerLow)
+                        .background(AppTheme.colors.surfaceContainerLow)
                 )
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -1052,13 +1034,13 @@ fun RecentActivitySection() {
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
-                            .background(SecondaryFixed),
+                            .background(AppTheme.colors.secondaryFixed),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.EditNote,
                             contentDescription = "Note",
-                            tint = Secondary,
+                            tint = AppTheme.colors.secondary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -1073,7 +1055,7 @@ fun RecentActivitySection() {
                             Text(
                                 text = "Asistencia corregida manualmente",
                                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                                color = OnSurface,
+                                color = AppTheme.colors.onSurface,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.weight(1f)
@@ -1081,14 +1063,14 @@ fun RecentActivitySection() {
                             Text(
                                 text = "11:50",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = OnSurfaceVariant
+                                color = AppTheme.colors.onSurfaceVariant
                             )
                         }
 
                         Text(
                             text = "Carlos Mendoza actualizado tras comprobante de decanatura.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = OnSurfaceVariant,
+                            color = AppTheme.colors.onSurfaceVariant,
                             modifier = Modifier.padding(top = 2.dp)
                         )
 
@@ -1096,7 +1078,7 @@ fun RecentActivitySection() {
 
                         Surface(
                             shape = CircleShape,
-                            color = Blue50
+                            color = AppTheme.colors.infoBg
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -1106,13 +1088,13 @@ fun RecentActivitySection() {
                                     modifier = Modifier
                                         .size(6.dp)
                                         .clip(CircleShape)
-                                        .background(Blue600)
+                                        .background(AppTheme.colors.infoText)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = "Justificado Médico",
                                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                    color = Blue800
+                                    color = AppTheme.colors.infoText
                                 )
                             }
                         }

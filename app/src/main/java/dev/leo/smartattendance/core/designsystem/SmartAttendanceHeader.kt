@@ -1,4 +1,5 @@
 package dev.leo.smartattendance.core.designsystem
+import dev.leo.smartattendance.ui.theme.AppTheme
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -35,12 +36,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.leo.smartattendance.ui.theme.OnSurfaceVariant
-import dev.leo.smartattendance.ui.theme.Primary
-import dev.leo.smartattendance.ui.theme.PrimaryContainer
-import dev.leo.smartattendance.ui.theme.Secondary
-import dev.leo.smartattendance.ui.theme.SecondaryFixed
-import dev.leo.smartattendance.ui.theme.SurfaceContainerHigh
 
 @Composable
 fun SmartAttendanceHeader(
@@ -79,7 +74,7 @@ fun SmartAttendanceHeader(
                         .clip(RoundedCornerShape(10.dp))
                         .background(
                             brush = Brush.linearGradient(
-                                listOf(Primary, PrimaryContainer)
+                                listOf(AppTheme.colors.primary, AppTheme.colors.primaryContainer)
                             )
                         ),
                     contentAlignment = Alignment.Center
@@ -101,13 +96,13 @@ fun SmartAttendanceHeader(
                         Text(
                             text = title,
                             style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                            color = Primary
+                            color = AppTheme.colors.primary
                         )
                         if (!badgeText.isNullOrBlank()) {
                             Spacer(modifier = Modifier.width(6.dp))
                             Surface(
                                 shape = CircleShape,
-                                color = SecondaryFixed
+                                color = AppTheme.colors.secondaryFixed
                             ) {
                                 Text(
                                     text = badgeText.uppercase(),
@@ -115,7 +110,7 @@ fun SmartAttendanceHeader(
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 9.sp
                                     ),
-                                    color = Secondary,
+                                    color = AppTheme.colors.secondary,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
                             }
@@ -124,7 +119,7 @@ fun SmartAttendanceHeader(
                     Text(
                         text = subtitle,
                         style = MaterialTheme.typography.bodySmall,
-                        color = OnSurfaceVariant
+                        color = AppTheme.colors.onSurfaceVariant
                     )
                 }
             }
@@ -144,14 +139,14 @@ fun SmartAttendanceHeader(
                                 Icon(
                                     imageVector = Icons.Outlined.Notifications,
                                     contentDescription = "Notificaciones",
-                                    tint = OnSurfaceVariant
+                                    tint = AppTheme.colors.onSurfaceVariant
                                 )
                             }
                         } else {
                             Icon(
                                 imageVector = Icons.Outlined.Notifications,
                                 contentDescription = "Notificaciones",
-                                tint = OnSurfaceVariant
+                                tint = AppTheme.colors.onSurfaceVariant
                             )
                         }
                     }
@@ -162,15 +157,15 @@ fun SmartAttendanceHeader(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
-                            .border(1.5.dp, Primary.copy(alpha = 0.3f), CircleShape)
-                            .background(SurfaceContainerHigh)
+                            .border(1.5.dp, AppTheme.colors.primary.copy(alpha = 0.3f), CircleShape)
+                            .background(AppTheme.colors.surfaceContainerHigh)
                             .clickable { onProfileClick() },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Person,
                             contentDescription = "Perfil",
-                            tint = Primary,
+                            tint = AppTheme.colors.primary,
                             modifier = Modifier.size(22.dp)
                         )
                     }

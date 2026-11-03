@@ -1,4 +1,5 @@
 package dev.leo.smartattendance.feature.profile
+import dev.leo.smartattendance.ui.theme.AppTheme
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.Column
@@ -28,9 +29,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.leo.smartattendance.core.designsystem.SmartAttendanceHeader
-import dev.leo.smartattendance.ui.theme.OnSurface
-import dev.leo.smartattendance.ui.theme.OnSurfaceVariant
-import dev.leo.smartattendance.ui.theme.Primary
 
 @Composable
 fun CompleteProfileScreen(
@@ -66,13 +64,13 @@ fun CompleteProfileScreen(
             Text(
                 text = "Datos Institucionales",
                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                color = OnSurface
+                color = AppTheme.colors.onSurface
             )
 
             Text(
                 text = "Ingresa tus nombres y código para validar tu credencial",
                 style = MaterialTheme.typography.bodyMedium,
-                color = OnSurfaceVariant
+                color = AppTheme.colors.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -120,7 +118,7 @@ fun CompleteProfileScreen(
                     }
                 },
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                colors = ButtonDefaults.buttonColors(containerColor = AppTheme.colors.primary),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)

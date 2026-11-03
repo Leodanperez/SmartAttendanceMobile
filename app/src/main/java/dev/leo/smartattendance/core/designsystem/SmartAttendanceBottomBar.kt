@@ -1,4 +1,5 @@
 package dev.leo.smartattendance.core.designsystem
+import dev.leo.smartattendance.ui.theme.AppTheme
 
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.size
@@ -25,11 +26,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.leo.smartattendance.core.navigation.NavRoutes
 import dev.leo.smartattendance.domain.model.UserRole
-import dev.leo.smartattendance.ui.theme.OnSurfaceVariant
-import dev.leo.smartattendance.ui.theme.Primary
-import dev.leo.smartattendance.ui.theme.Secondary
-import dev.leo.smartattendance.ui.theme.SecondaryFixed
-import dev.leo.smartattendance.ui.theme.SurfaceContainerLowest
 
 data class NavigationTabItem(
     val route: NavRoutes,
@@ -143,7 +139,7 @@ fun SmartAttendanceBottomBar(
     tabs: List<NavigationTabItem> = getNavigationTabsForRole(userRole)
 ) {
     NavigationBar(
-        containerColor = SurfaceContainerLowest,
+        containerColor = AppTheme.colors.surfaceContainerLowest,
         tonalElevation = 8.dp,
         modifier = modifier
     ) {
@@ -198,11 +194,11 @@ fun RowScope.SmartAttendanceNavItem(
             )
         },
         colors = NavigationBarItemDefaults.colors(
-            selectedIconColor = Secondary,
-            selectedTextColor = Primary,
-            indicatorColor = SecondaryFixed,
-            unselectedIconColor = OnSurfaceVariant,
-            unselectedTextColor = OnSurfaceVariant
+            selectedIconColor = AppTheme.colors.secondary,
+            selectedTextColor = AppTheme.colors.primary,
+            indicatorColor = AppTheme.colors.secondaryFixed,
+            unselectedIconColor = AppTheme.colors.onSurfaceVariant,
+            unselectedTextColor = AppTheme.colors.onSurfaceVariant
         )
     )
 }

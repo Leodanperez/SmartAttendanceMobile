@@ -1,4 +1,5 @@
 package dev.leo.smartattendance.feature.auth
+import dev.leo.smartattendance.ui.theme.AppTheme
 
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
@@ -76,19 +77,7 @@ import androidx.compose.ui.unit.sp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
-import dev.leo.smartattendance.ui.theme.OnSurface
-import dev.leo.smartattendance.ui.theme.OnSurfaceVariant
-import dev.leo.smartattendance.ui.theme.Outline
-import dev.leo.smartattendance.ui.theme.Primary
-import dev.leo.smartattendance.ui.theme.PrimaryContainer
-import dev.leo.smartattendance.ui.theme.PrimaryFixed
-import dev.leo.smartattendance.ui.theme.SecondaryContainer
-import dev.leo.smartattendance.ui.theme.SecondaryFixed
 import dev.leo.smartattendance.ui.theme.SmartAttendanceMobileTheme
-import dev.leo.smartattendance.ui.theme.SurfaceContainerHigh
-import dev.leo.smartattendance.ui.theme.SurfaceContainerLow
-import dev.leo.smartattendance.ui.theme.SurfaceContainerLowest
-import dev.leo.smartattendance.ui.theme.Tertiary
 
 @Composable
 fun LoginScreen(
@@ -176,14 +165,14 @@ fun LoginScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // Background Ambient Glow Accents
+        // AppTheme.colors.background Ambient Glow Accents
         Box(
             modifier = Modifier
                 .size(240.dp)
                 .align(Alignment.TopStart)
                 .padding(top = 10.dp)
                 .blur(60.dp)
-                .background(PrimaryFixed.copy(alpha = 0.35f), shape = CircleShape)
+                .background(AppTheme.colors.primaryFixed.copy(alpha = 0.35f), shape = CircleShape)
         )
         Box(
             modifier = Modifier
@@ -191,7 +180,7 @@ fun LoginScreen(
                 .align(Alignment.TopEnd)
                 .padding(top = 20.dp)
                 .blur(60.dp)
-                .background(SecondaryFixed.copy(alpha = 0.35f), shape = CircleShape)
+                .background(AppTheme.colors.secondaryFixed.copy(alpha = 0.35f), shape = CircleShape)
         )
 
         Column(
@@ -215,7 +204,7 @@ fun LoginScreen(
                         .clip(RoundedCornerShape(20.dp))
                         .background(
                             brush = Brush.linearGradient(
-                                colors = listOf(Primary, PrimaryContainer)
+                                colors = listOf(AppTheme.colors.primary, AppTheme.colors.primaryContainer)
                             )
                         )
                         .padding(2.dp),
@@ -225,7 +214,7 @@ fun LoginScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .clip(RoundedCornerShape(18.dp))
-                            .background(PrimaryContainer.copy(alpha = 0.25f)),
+                            .background(AppTheme.colors.primaryContainer.copy(alpha = 0.25f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -243,7 +232,7 @@ fun LoginScreen(
                         .size(14.dp)
                         .align(Alignment.BottomEnd)
                         .clip(CircleShape)
-                        .background(SecondaryContainer)
+                        .background(AppTheme.colors.secondaryContainer)
                         .border(2.dp, MaterialTheme.colorScheme.background, CircleShape)
                 )
             }
@@ -255,7 +244,7 @@ fun LoginScreen(
                     fontWeight = FontWeight.Bold,
                     letterSpacing = (-0.5).sp
                 ),
-                color = OnSurface,
+                color = AppTheme.colors.onSurface,
                 textAlign = TextAlign.Center
             )
 
@@ -264,7 +253,7 @@ fun LoginScreen(
             // Institutional Verified Pill Badge
             Surface(
                 shape = CircleShape,
-                color = SurfaceContainerHigh,
+                color = AppTheme.colors.surfaceContainerHigh,
                 modifier = Modifier.padding(bottom = 8.dp)
             ) {
                 Row(
@@ -274,14 +263,14 @@ fun LoginScreen(
                     Icon(
                         imageVector = Icons.Outlined.VerifiedUser,
                         contentDescription = "Verificado",
-                        tint = Primary,
+                        tint = AppTheme.colors.primary,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "Acceso Institucional Seguro",
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                        color = Primary
+                        color = AppTheme.colors.primary
                     )
                 }
             }
@@ -290,7 +279,7 @@ fun LoginScreen(
             Text(
                 text = "Control y registro de asistencia académica en tiempo real con credencial digital y QR dinámico",
                 style = MaterialTheme.typography.bodyMedium,
-                color = OnSurfaceVariant,
+                color = AppTheme.colors.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -302,7 +291,7 @@ fun LoginScreen(
             // Central Form Card
             Surface(
                 shape = RoundedCornerShape(24.dp),
-                color = SurfaceContainerLowest,
+                color = AppTheme.colors.surfaceContainerLowest,
                 shadowElevation = 2.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -312,7 +301,7 @@ fun LoginScreen(
                     // Unified Portal Banner
                     Surface(
                         shape = RoundedCornerShape(14.dp),
-                        color = SurfaceContainerLow,
+                        color = AppTheme.colors.surfaceContainerLow,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 16.dp)
@@ -329,7 +318,7 @@ fun LoginScreen(
                                 Icon(
                                     imageVector = Icons.Outlined.School,
                                     contentDescription = "Portal",
-                                    tint = Primary,
+                                    tint = AppTheme.colors.primary,
                                     modifier = Modifier.size(22.dp)
                                 )
                                 Spacer(modifier = Modifier.width(10.dp))
@@ -337,12 +326,12 @@ fun LoginScreen(
                                     Text(
                                         text = "Portal Único Centralizado",
                                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                                        color = OnSurface
+                                        color = AppTheme.colors.onSurface
                                     )
                                     Text(
                                         text = "Estudiantes, Catedráticos y Administrativos",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = OnSurfaceVariant,
+                                        color = AppTheme.colors.onSurfaceVariant,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
@@ -353,12 +342,12 @@ fun LoginScreen(
 
                             Surface(
                                 shape = CircleShape,
-                                color = PrimaryFixed
+                                color = AppTheme.colors.primaryFixed
                             ) {
                                 Text(
                                     text = "SSO Activo",
                                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = Primary,
+                                    color = AppTheme.colors.primary,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                                 )
                             }
@@ -374,12 +363,12 @@ fun LoginScreen(
                         Text(
                             text = "Correo Institucional",
                             style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                            color = OnSurface
+                            color = AppTheme.colors.onSurface
                         )
                         Text(
                             text = "Requerido",
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
-                            color = Primary
+                            color = AppTheme.colors.primary
                         )
                     }
 
@@ -391,7 +380,7 @@ fun LoginScreen(
                         placeholder = {
                             Text(
                                 text = "usuario@universidad.edu.pe",
-                                color = Outline,
+                                color = AppTheme.colors.outline,
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         },
@@ -399,7 +388,7 @@ fun LoginScreen(
                             Icon(
                                 imageVector = Icons.Outlined.AlternateEmail,
                                 contentDescription = "Correo",
-                                tint = Outline,
+                                tint = AppTheme.colors.outline,
                                 modifier = Modifier.size(20.dp)
                             )
                         },
@@ -409,7 +398,7 @@ fun LoginScreen(
                                     Icon(
                                         imageVector = Icons.Default.Cancel,
                                         contentDescription = "Limpiar correo",
-                                        tint = Outline,
+                                        tint = AppTheme.colors.outline,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -421,9 +410,9 @@ fun LoginScreen(
                             imeAction = ImeAction.Next
                         ),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = SurfaceContainerLowest,
-                            unfocusedContainerColor = SurfaceContainerLow,
-                            focusedBorderColor = Primary.copy(alpha = 0.5f),
+                            focusedContainerColor = AppTheme.colors.surfaceContainerLowest,
+                            unfocusedContainerColor = AppTheme.colors.surfaceContainerLow,
+                            focusedBorderColor = AppTheme.colors.primary.copy(alpha = 0.5f),
                             unfocusedBorderColor = Color.Transparent
                         ),
                         shape = RoundedCornerShape(14.dp),
@@ -434,7 +423,7 @@ fun LoginScreen(
                     Text(
                         text = "Ingresa con tu correo de dominio @universidad.edu.pe",
                         style = MaterialTheme.typography.bodySmall,
-                        color = OnSurfaceVariant,
+                        color = AppTheme.colors.onSurfaceVariant,
                         modifier = Modifier.padding(start = 4.dp)
                     )
 
@@ -444,7 +433,7 @@ fun LoginScreen(
                     Text(
                         text = "Contraseña",
                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                        color = OnSurface
+                        color = AppTheme.colors.onSurface
                     )
 
                     Spacer(modifier = Modifier.height(6.dp))
@@ -455,7 +444,7 @@ fun LoginScreen(
                         placeholder = {
                             Text(
                                 text = "••••••••••••",
-                                color = Outline,
+                                color = AppTheme.colors.outline,
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         },
@@ -463,7 +452,7 @@ fun LoginScreen(
                             Icon(
                                 imageVector = Icons.Outlined.Lock,
                                 contentDescription = "Contraseña",
-                                tint = Outline,
+                                tint = AppTheme.colors.outline,
                                 modifier = Modifier.size(20.dp)
                             )
                         },
@@ -472,7 +461,7 @@ fun LoginScreen(
                                 Icon(
                                     imageVector = if (isPasswordVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
                                     contentDescription = if (isPasswordVisible) "Ocultar contraseña" else "Mostrar contraseña",
-                                    tint = Outline,
+                                    tint = AppTheme.colors.outline,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -487,9 +476,9 @@ fun LoginScreen(
                             onDone = { performLogin() }
                         ),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = SurfaceContainerLowest,
-                            unfocusedContainerColor = SurfaceContainerLow,
-                            focusedBorderColor = Primary.copy(alpha = 0.5f),
+                            focusedContainerColor = AppTheme.colors.surfaceContainerLowest,
+                            unfocusedContainerColor = AppTheme.colors.surfaceContainerLow,
+                            focusedBorderColor = AppTheme.colors.primary.copy(alpha = 0.5f),
                             unfocusedBorderColor = Color.Transparent
                         ),
                         shape = RoundedCornerShape(14.dp),
@@ -512,8 +501,8 @@ fun LoginScreen(
                                 checked = rememberSession,
                                 onCheckedChange = { rememberSession = it },
                                 colors = CheckboxDefaults.colors(
-                                    checkedColor = Primary,
-                                    uncheckedColor = Outline
+                                    checkedColor = AppTheme.colors.primary,
+                                    uncheckedColor = AppTheme.colors.outline
                                 ),
                                 modifier = Modifier.size(28.dp)
                             )
@@ -521,14 +510,14 @@ fun LoginScreen(
                             Text(
                                 text = "Recordar mi sesión",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = OnSurface
+                                color = AppTheme.colors.onSurface
                             )
                         }
 
                         Text(
                             text = "¿Olvidaste tu contraseña?",
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                            color = Primary,
+                            color = AppTheme.colors.primary,
                             modifier = Modifier.clickable { performPasswordReset() }
                         )
                     }
@@ -576,7 +565,7 @@ fun LoginScreen(
                         successMessage?.let { msg ->
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
-                                color = SurfaceContainerHigh,
+                                color = AppTheme.colors.surfaceContainerHigh,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 12.dp)
@@ -584,7 +573,7 @@ fun LoginScreen(
                                 Text(
                                     text = msg,
                                     style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-                                    color = Primary,
+                                    color = AppTheme.colors.primary,
                                     modifier = Modifier.padding(10.dp)
                                 )
                             }
@@ -593,13 +582,13 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Primary Action Button
+                    // AppTheme.colors.primary Action Button
                     Button(
                         onClick = { performLogin() },
                         enabled = !isLoading,
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Primary,
+                            containerColor = AppTheme.colors.primary,
                             contentColor = Color.White
                         ),
                         modifier = Modifier
@@ -639,7 +628,7 @@ fun LoginScreen(
                 }
             }
 
-            // Secondary Assistance Links
+            // AppTheme.colors.secondary Assistance Links
             Spacer(modifier = Modifier.height(16.dp))
 
             Row(
@@ -649,12 +638,12 @@ fun LoginScreen(
                 Text(
                     text = "¿Primer ingreso o nueva matrícula? ",
                     style = MaterialTheme.typography.bodySmall,
-                    color = OnSurfaceVariant
+                    color = AppTheme.colors.onSurfaceVariant
                 )
                 Text(
                     text = "Activar cuenta",
                     style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                    color = Primary,
+                    color = AppTheme.colors.primary,
                     modifier = Modifier.clickable { onNavigateToRegister() }
                 )
             }
@@ -673,14 +662,14 @@ fun LoginScreen(
                 Icon(
                     imageVector = Icons.AutoMirrored.Outlined.HelpOutline,
                     contentDescription = "Soporte",
-                    tint = Outline,
+                    tint = AppTheme.colors.outline,
                     modifier = Modifier.size(14.dp)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = "Centro de ayuda institucional y soporte TI",
                     style = MaterialTheme.typography.labelSmall,
-                    color = Outline
+                    color = AppTheme.colors.outline
                 )
             }
 
@@ -689,7 +678,7 @@ fun LoginScreen(
             // Institutional Security & Compliance Footer
             Surface(
                 shape = CircleShape,
-                color = SurfaceContainerLow,
+                color = AppTheme.colors.surfaceContainerLow,
                 modifier = Modifier.padding(bottom = 6.dp)
             ) {
                 Row(
@@ -699,14 +688,14 @@ fun LoginScreen(
                     Icon(
                         imageVector = Icons.Outlined.Security,
                         contentDescription = "Seguridad",
-                        tint = Tertiary,
+                        tint = AppTheme.colors.primary,
                         modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "Cifrado TLS 1.3 • Conexión Institucional Protegida",
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
-                        color = Tertiary
+                        color = AppTheme.colors.primary
                     )
                 }
             }
@@ -714,7 +703,7 @@ fun LoginScreen(
             Text(
                 text = "Facultad de Ingeniería • Versión 2.4.2 (Compilación Oficial)",
                 style = MaterialTheme.typography.labelSmall,
-                color = Outline
+                color = AppTheme.colors.outline
             )
 
             Spacer(modifier = Modifier.height(16.dp))

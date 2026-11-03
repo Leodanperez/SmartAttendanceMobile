@@ -1,4 +1,5 @@
 package dev.leo.smartattendance.feature.enrollment
+import dev.leo.smartattendance.ui.theme.AppTheme
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.Column
@@ -24,11 +25,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import dev.leo.smartattendance.ui.theme.Primary
 
-// Diálogo siempre en modo claro (independiente del tema del dispositivo).
-private val DialogSurface = Color.White
-private val DialogOnSurface = Color(0xFF0F172A)
+// El diálogo respeta el tema claro/oscuro de la app.
 
 @Composable
 fun EnrollCourseDialog(
@@ -40,14 +38,14 @@ fun EnrollCourseDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = DialogSurface,
-        titleContentColor = DialogOnSurface,
-        textContentColor = DialogOnSurface,
+        containerColor = AppTheme.colors.surfaceContainerLowest,
+        titleContentColor = AppTheme.colors.onSurface,
+        textContentColor = AppTheme.colors.onSurface,
         title = {
             Text(
                 text = "Unirse a un Curso",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = DialogOnSurface
+                color = AppTheme.colors.onSurface
             )
         },
         text = {
@@ -55,7 +53,7 @@ fun EnrollCourseDialog(
                 Text(
                     text = "Ingresa el código proporcionado por tu docente",
                     style = MaterialTheme.typography.bodySmall,
-                    color = DialogOnSurface
+                    color = AppTheme.colors.onSurface
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 OutlinedTextField(
@@ -79,7 +77,7 @@ fun EnrollCourseDialog(
                         Toast.makeText(context, "Ingresa un código válido", Toast.LENGTH_SHORT).show()
                     }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                colors = ButtonDefaults.buttonColors(containerColor = AppTheme.colors.primary),
                 shape = RoundedCornerShape(10.dp)
             ) {
                 Text("Inscribirse", color = Color.White)

@@ -1,4 +1,5 @@
 package dev.leo.smartattendance.feature.reports
+import dev.leo.smartattendance.ui.theme.AppTheme
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -31,15 +32,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.leo.smartattendance.domain.model.Attendance
 import dev.leo.smartattendance.domain.model.AttendanceStatus
-import dev.leo.smartattendance.ui.theme.Amber50
-import dev.leo.smartattendance.ui.theme.Amber900
-import dev.leo.smartattendance.ui.theme.Emerald50
-import dev.leo.smartattendance.ui.theme.Emerald800
-import dev.leo.smartattendance.ui.theme.OnSurface
-import dev.leo.smartattendance.ui.theme.OnSurfaceVariant
-import dev.leo.smartattendance.ui.theme.Primary
-import dev.leo.smartattendance.ui.theme.SurfaceContainerHigh
-import dev.leo.smartattendance.ui.theme.SurfaceContainerLowest
 
 val sampleRoster = listOf(
     Attendance("1", "s1", "c1", "Algoritmos y Estructuras", "st1", "Carlos Mendoza", "EST-2024-01", AttendanceStatus.PRESENT),
@@ -59,12 +51,12 @@ fun ReportsScreen() {
             Text(
                 text = "Reporte de Asistencia en Vivo",
                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                color = OnSurface
+                color = AppTheme.colors.onSurface
             )
             Text(
                 text = "Algoritmos y Estructuras de Datos • Grupo B",
                 style = MaterialTheme.typography.bodySmall,
-                color = OnSurfaceVariant
+                color = AppTheme.colors.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(16.dp))
         }
@@ -75,8 +67,8 @@ fun ReportsScreen() {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                SummaryPill(title = "Presentes", count = "18", color = Emerald800, bg = Emerald50, modifier = Modifier.weight(1f))
-                SummaryPill(title = "Tardanzas", count = "2", color = Amber900, bg = Amber50, modifier = Modifier.weight(1f))
+                SummaryPill(title = "Presentes", count = "18", color = AppTheme.colors.successText, bg = AppTheme.colors.successBg, modifier = Modifier.weight(1f))
+                SummaryPill(title = "Tardanzas", count = "2", color = AppTheme.colors.warningText, bg = AppTheme.colors.warningBg, modifier = Modifier.weight(1f))
                 SummaryPill(title = "Faltas", count = "4", color = MaterialTheme.colorScheme.error, bg = MaterialTheme.colorScheme.errorContainer, modifier = Modifier.weight(1f))
             }
             Spacer(modifier = Modifier.height(16.dp))
@@ -86,7 +78,7 @@ fun ReportsScreen() {
             Text(
                 text = "Lista de Estudiantes",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = OnSurface,
+                color = AppTheme.colors.onSurface,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
         }
@@ -125,7 +117,7 @@ fun SummaryPill(
 fun RosterItemCard(attendance: Attendance) {
     Card(
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = SurfaceContainerLowest),
+        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainerLowest),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -139,13 +131,13 @@ fun RosterItemCard(attendance: Attendance) {
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(SurfaceContainerHigh),
+                        .background(AppTheme.colors.surfaceContainerHigh),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = attendance.studentName.take(1),
                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                        color = Primary
+                        color = AppTheme.colors.primary
                     )
                 }
 
@@ -155,21 +147,21 @@ fun RosterItemCard(attendance: Attendance) {
                     Text(
                         text = attendance.studentName,
                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                        color = OnSurface
+                        color = AppTheme.colors.onSurface
                     )
                     Text(
                         text = attendance.institutionalCode,
                         style = MaterialTheme.typography.bodySmall,
-                        color = OnSurfaceVariant
+                        color = AppTheme.colors.onSurfaceVariant
                     )
                 }
             }
 
             val (statusText, statusBg, statusColor) = when (attendance.status) {
-                AttendanceStatus.PRESENT -> Triple("PRESENTE", Emerald50, Emerald800)
-                AttendanceStatus.LATE -> Triple("TARDANZA", Amber50, Amber900)
+                AttendanceStatus.PRESENT -> Triple("PRESENTE", AppTheme.colors.successBg, AppTheme.colors.successText)
+                AttendanceStatus.LATE -> Triple("TARDANZA", AppTheme.colors.warningBg, AppTheme.colors.warningText)
                 AttendanceStatus.ABSENT -> Triple("FALTA", MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.error)
-                AttendanceStatus.JUSTIFIED -> Triple("JUSTIFICADO", SurfaceContainerHigh, Primary)
+                AttendanceStatus.JUSTIFIED -> Triple("JUSTIFICADO", AppTheme.colors.surfaceContainerHigh, AppTheme.colors.primary)
             }
 
             Surface(

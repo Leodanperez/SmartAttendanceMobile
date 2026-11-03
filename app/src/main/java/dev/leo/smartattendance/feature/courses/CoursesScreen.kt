@@ -1,4 +1,5 @@
 package dev.leo.smartattendance.feature.courses
+import dev.leo.smartattendance.ui.theme.AppTheme
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -21,11 +22,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.leo.smartattendance.domain.model.Course
 import dev.leo.smartattendance.feature.teacherhome.CourseCardItem
-import dev.leo.smartattendance.ui.theme.OnSurface
-import dev.leo.smartattendance.ui.theme.OnSurfaceVariant
-import dev.leo.smartattendance.ui.theme.Secondary
-import dev.leo.smartattendance.ui.theme.SecondaryFixed
-import dev.leo.smartattendance.ui.theme.SurfaceContainerLowest
 
 @Composable
 fun CoursesScreen(
@@ -40,12 +36,12 @@ fun CoursesScreen(
                 Text(
                     text = "Mis Cursos",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = OnSurface
+                    color = AppTheme.colors.onSurface
                 )
                 Text(
                     text = "Gestión de asignaturas y secciones para la asistencia",
                     style = MaterialTheme.typography.bodySmall,
-                    color = OnSurfaceVariant
+                    color = AppTheme.colors.onSurfaceVariant
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))
@@ -55,7 +51,7 @@ fun CoursesScreen(
             item {
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    color = SurfaceContainerLowest,
+                    color = AppTheme.colors.surfaceContainerLowest,
                     shadowElevation = 1.dp,
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -66,13 +62,13 @@ fun CoursesScreen(
                         Text(
                             text = "Sin Cursos Inscritos",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = OnSurface
+                            color = AppTheme.colors.onSurface
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Solo verás los cursos en los que estás matriculado activamente.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = OnSurfaceVariant,
+                            color = AppTheme.colors.onSurfaceVariant,
                             textAlign = TextAlign.Center
                         )
                     }
@@ -82,8 +78,8 @@ fun CoursesScreen(
             items(courses) { course ->
                 CourseCardItem(
                     code = course.code.ifEmpty { "CS201" },
-                    codeBg = SecondaryFixed,
-                    codeTextColor = Secondary,
+                    codeBg = AppTheme.colors.secondaryFixed,
+                    codeTextColor = AppTheme.colors.secondary,
                     sectionInfo = course.section.ifEmpty { "Lab 4 • 28 alumnos" },
                     courseTitle = course.name,
                     attendancePercentage = "${course.attendanceRate.takeIf { it > 0 } ?: 92}% Asist.",
