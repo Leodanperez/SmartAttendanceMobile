@@ -7,8 +7,10 @@ import dev.leo.smartattendance.domain.model.ActiveSession
 import dev.leo.smartattendance.domain.model.Attendance
 import dev.leo.smartattendance.domain.model.Course
 import dev.leo.smartattendance.domain.model.CourseSessionSummary
+import dev.leo.smartattendance.domain.model.QrSession
 import dev.leo.smartattendance.domain.model.RecentActivity
 import dev.leo.smartattendance.domain.model.Session
+import dev.leo.smartattendance.domain.model.TeacherActivity
 import dev.leo.smartattendance.domain.repository.CourseRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -90,6 +92,67 @@ class CourseRepositoryImpl(
                 status = row.status,
                 startsAtMillis = row.startsAtMillis,
                 myStatus = row.myStatus
+            )
+        }
+    }
+
+    override suspend fun createSessionWithToken(
+        courseId: String,
+        courseName: String,
+        title: String,
+        teacherId: String,
+        startsAtMillis: Long,
+        durationMinutes: Int,
+        lateAfterMinutes: Int?,
+        qrSeconds: Int
+    ): QrSession? {
+        val created = firestoreDataSource.createSessionWithToken(
+            courseId = courseId,
+            courseName = courseName,
+            title = title,
+            teacherId = teacherId,
+            startsAtMillis = startsAtMillis,
+            durationMinutes = durationMinutes,
+            lateAfterMinutes = lateAfterMinutes,
+            qrSeconds = qrSeconds
+        ) ?: return null
+        return QrSession(
+            sessionId = created.sessionId,
+            courseId = created.courseId,
+            courseName = courseName,
+            title = title,
+            token = created.token,
+            tokenExpiresAtMillis = created.tokenExpiresAtMillis
+        )
+    }
+
+    override suspend fun rotateSessionToken(sessionId: String, courseId: String, qrSeconds: Int): QrSession? {
+        val rotated = firestoreDataSource.rotateSessionToken(sessionId, courseId, qrSeconds) ?: return null
+        return QrSession(
+            sessionId = sessionId,
+            courseId = courseId,
+            courseName = "",
+            title = "",
+            token = rotated.token,
+            tokenExpiresAtMillis = rotated.tokenExpiresAtMillis
+        )
+    }
+
+    override suspend fun getEnrolledCount(courseId: String): Int {
+        return firestoreDataSource.getEnrolledCount(courseId)
+    }
+
+    override suspend fun getTeacherRecentActivity(teacherId: String): List<TeacherActivity> {
+        return firestoreDataSource.getTeacherRecentActivity(teacherId).map { row ->
+            TeacherActivity(
+                sessionId = row.sessionId,
+                courseName = row.courseName,
+                title = row.title,
+                status = row.status,
+                startsAtMillis = row.startsAtMillis,
+                closedAtMillis = row.closedAtMillis,
+                presentCount = row.presentCount,
+                lateCount = row.lateCount
             )
         }
     }

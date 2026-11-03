@@ -11,6 +11,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -32,8 +33,12 @@ import dev.leo.smartattendance.feature.auth.SignUpScreen
 import dev.leo.smartattendance.feature.auth.SplashScreen
 import dev.leo.smartattendance.domain.model.Course
 import dev.leo.smartattendance.domain.model.CourseSessionSummary
+import dev.leo.smartattendance.domain.model.QrSession
+import dev.leo.smartattendance.domain.model.TeacherActivity
 import dev.leo.smartattendance.feature.coursedetail.CourseDetailScreen
 import dev.leo.smartattendance.feature.courses.CoursesScreen
+import dev.leo.smartattendance.feature.teacherhome.CreateSessionDialog
+import dev.leo.smartattendance.feature.teacherhome.NewSessionDialog
 import dev.leo.smartattendance.feature.profile.ProfileScreen
 import dev.leo.smartattendance.feature.qrgenerator.TeacherQrDisplayScreen
 import dev.leo.smartattendance.feature.qrscanner.QrScannerScreen
@@ -86,6 +91,19 @@ class MainActivity : ComponentActivity() {
                 // Ruta desde la que se abrió el detalle, para volver a ella con el botón atrás.
                 var detailOrigin by remember { mutableStateOf<NavRoutes>(NavRoutes.StudentHome) }
 
+                // --- Sesión + QR del docente ---
+                // Sesión QR actualmente mostrada (creada desde el móvil).
+                var teacherQrSession by remember { mutableStateOf<QrSession?>(null) }
+                // Inscritos en el curso de la sesión mostrada (para el quórum del QR).
+                var teacherQrEnrolled by remember { mutableIntStateOf(0) }
+                // Diálogo de "nueva sesión".
+                var showNewSessionDialog by remember { mutableStateOf(false) }
+                var creatingSession by remember { mutableStateOf(false) }
+                // Actividad reciente del docente.
+                var teacherActivity by remember { mutableStateOf<List<TeacherActivity>>(emptyList()) }
+                // Formulario de "crear sesión" desde el detalle del curso (docente).
+                var showCreateSessionForm by remember { mutableStateOf(false) }
+
                 // Check session & load user role from Firestore
                 LaunchedEffect(auth.currentUser) {
                     val firebaseUser = auth.currentUser
@@ -134,6 +152,31 @@ class MainActivity : ComponentActivity() {
                     val effectiveRole = currentUser?.role ?: UserRole.STUDENT
                     val teacherCourses = courseRepository.getTeacherCoursesFlow(currentUser?.uid ?: "").collectAsState(initial = emptyList()).value
                     val studentCourses = courseRepository.getStudentCoursesFlow(currentUser?.uid ?: "").collectAsState(initial = emptyList()).value
+
+                    // Sesión activa real del docente y su asistencia en vivo.
+                    val teacherActiveSession = courseRepository
+                        .getActiveSessionFlow(currentUser?.uid ?: "")
+                        .collectAsState(initial = null).value
+                    val teacherActiveLive = if (teacherActiveSession != null)
+                        courseRepository.getLiveAttendancesFlow(teacherActiveSession.id)
+                            .collectAsState(initial = emptyList()).value
+                    else emptyList()
+                    var teacherActiveEnrolled by remember { mutableIntStateOf(0) }
+
+                    // Inscritos del curso de la sesión activa (para el quórum del panel).
+                    LaunchedEffect(teacherActiveSession?.courseId) {
+                        teacherActiveEnrolled = teacherActiveSession?.courseId?.let {
+                            courseRepository.getEnrolledCount(it)
+                        } ?: 0
+                    }
+
+                    // Actividad reciente del docente (se recarga cuando cambia la sesión activa).
+                    LaunchedEffect(currentUser?.uid, teacherActiveSession?.id) {
+                        val uid = currentUser?.uid
+                        if (uid != null && (effectiveRole == UserRole.TEACHER || effectiveRole == UserRole.ADMIN)) {
+                            teacherActivity = courseRepository.getTeacherRecentActivity(uid)
+                        }
+                    }
 
                     when (currentRoute) {
                         NavRoutes.Login -> {
@@ -190,8 +233,35 @@ class MainActivity : ComponentActivity() {
                                 userName = currentUser?.fullName?.ifEmpty { "Prof. Morales" } ?: "Prof. Morales",
                                 userRole = currentUser?.role?.name ?: "DOCENTE",
                                 courses = teacherCourses,
+                                activeSession = teacherActiveSession,
+                                activeEnrolledCount = teacherActiveEnrolled,
+                                activePresentCount = teacherActiveLive.size,
+                                recentActivity = teacherActivity,
                                 currentRoute = currentRoute,
                                 onNavigateToRoute = { route -> currentRoute = route },
+                                onNewSessionClick = { showNewSessionDialog = true },
+                                onOpenActiveQr = {
+                                    val active = teacherActiveSession
+                                    if (active != null) {
+                                        // Abre el QR de la sesión activa; renueva token para tener uno vigente.
+                                        creatingSession = true
+                                        scope.launch {
+                                            val rotated = courseRepository.rotateSessionToken(active.id, active.courseId)
+                                            teacherQrEnrolled = courseRepository.getEnrolledCount(active.courseId)
+                                            teacherQrSession = QrSession(
+                                                sessionId = active.id,
+                                                courseId = active.courseId,
+                                                courseName = active.courseName,
+                                                title = active.title,
+                                                token = rotated?.token ?: "",
+                                                tokenExpiresAtMillis = rotated?.tokenExpiresAtMillis
+                                                    ?: (System.currentTimeMillis() + 60_000)
+                                            )
+                                            creatingSession = false
+                                            currentRoute = NavRoutes.Sessions
+                                        }
+                                    }
+                                },
                                 onLogout = {
                                     authRepository.logout()
                                     currentUser = null
@@ -233,10 +303,13 @@ class MainActivity : ComponentActivity() {
                             if (course == null) {
                                 currentRoute = NavRoutes.StudentHome
                             } else {
+                                val teacherView = effectiveRole == UserRole.TEACHER || effectiveRole == UserRole.ADMIN
                                 CourseDetailScreen(
                                     course = course,
                                     sessions = detailSessions,
                                     isLoadingSessions = loadingDetailSessions,
+                                    isTeacher = teacherView,
+                                    onCreateSession = { showCreateSessionForm = true },
                                     onNavigateBack = { currentRoute = detailOrigin }
                                 )
                             }
@@ -244,13 +317,24 @@ class MainActivity : ComponentActivity() {
 
                         NavRoutes.Sessions -> {
                             if (effectiveRole == UserRole.TEACHER || effectiveRole == UserRole.ADMIN) {
-                                TeacherQrDisplayScreen(
-                                    sessionId = "session_01",
-                                    courseRepository = courseRepository,
-                                    onCloseSession = {
+                                val qr = teacherQrSession
+                                if (qr != null) {
+                                    TeacherQrDisplayScreen(
+                                        session = qr,
+                                        enrolledCount = teacherQrEnrolled,
+                                        courseRepository = courseRepository,
+                                        onCloseSession = {
+                                            teacherQrSession = null
+                                            currentRoute = NavRoutes.TeacherHome
+                                        }
+                                    )
+                                } else {
+                                    // Llegó a Sesiones sin una sesión abierta: vuelve al inicio y ofrece crear una.
+                                    LaunchedEffect(Unit) {
                                         currentRoute = NavRoutes.TeacherHome
+                                        showNewSessionDialog = true
                                     }
-                                )
+                                }
                             } else {
                                 QrScannerScreen(
                                     activeCourseName = studentCourses.firstOrNull()?.name ?: "Desarrollo de Sistemas",
@@ -367,6 +451,51 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         }
+                    }
+
+                    // Diálogo "nueva sesión": elegir curso -> abre el formulario de creación.
+                    if (showNewSessionDialog) {
+                        NewSessionDialog(
+                            courses = teacherCourses,
+                            onDismiss = { showNewSessionDialog = false },
+                            onCourseSelected = { course ->
+                                selectedCourse = course
+                                showNewSessionDialog = false
+                                showCreateSessionForm = true
+                            }
+                        )
+                    }
+
+                    // Formulario de creación de sesión (mismos campos que el panel web).
+                    val formCourse = selectedCourse
+                    if (showCreateSessionForm && formCourse != null) {
+                        CreateSessionDialog(
+                            course = formCourse,
+                            submitting = creatingSession,
+                            onDismiss = { if (!creatingSession) showCreateSessionForm = false },
+                            onCreate = { data ->
+                                if (creatingSession) return@CreateSessionDialog
+                                creatingSession = true
+                                scope.launch {
+                                    val created = courseRepository.createSessionWithToken(
+                                        courseId = formCourse.id,
+                                        courseName = formCourse.name,
+                                        title = data.title,
+                                        teacherId = currentUser?.uid ?: "",
+                                        startsAtMillis = data.startsAtMillis,
+                                        durationMinutes = data.durationMinutes,
+                                        lateAfterMinutes = data.lateAfterMinutes
+                                    )
+                                    creatingSession = false
+                                    showCreateSessionForm = false
+                                    if (created != null) {
+                                        teacherQrEnrolled = courseRepository.getEnrolledCount(formCourse.id)
+                                        teacherQrSession = created
+                                        currentRoute = NavRoutes.Sessions
+                                    }
+                                }
+                            }
+                        )
                     }
                 }
             }

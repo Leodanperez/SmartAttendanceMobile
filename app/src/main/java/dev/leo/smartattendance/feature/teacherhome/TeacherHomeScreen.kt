@@ -69,8 +69,14 @@ fun TeacherHomeScreen(
     userName: String = "Prof. Morales",
     userRole: String = "Docente",
     courses: List<dev.leo.smartattendance.domain.model.Course> = emptyList(),
+    activeSession: dev.leo.smartattendance.domain.model.Session? = null,
+    activeEnrolledCount: Int = 0,
+    activePresentCount: Int = 0,
+    recentActivity: List<dev.leo.smartattendance.domain.model.TeacherActivity> = emptyList(),
     currentRoute: NavRoutes = NavRoutes.TeacherHome,
     onNavigateToRoute: (NavRoutes) -> Unit = {},
+    onNewSessionClick: () -> Unit = {},
+    onOpenActiveQr: () -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -112,9 +118,13 @@ fun TeacherHomeScreen(
             }
 
             item {
-                // Active Session Card
+                // Active Session Card (real) or empty state.
                 ActiveSessionCard(
-                    onVerQrClick = { onNavigateToRoute(NavRoutes.Sessions) }
+                    activeSession = activeSession,
+                    presentCount = activePresentCount,
+                    enrolledCount = activeEnrolledCount,
+                    onVerQrClick = onOpenActiveQr,
+                    onNewSessionClick = onNewSessionClick
                 )
             }
 
@@ -125,9 +135,8 @@ fun TeacherHomeScreen(
             item {
                 // Quick Actions Grid
                 QuickActionsGrid(
-                    onNuevaSesionClick = {
-                        Toast.makeText(context, "Creando nueva sesión con código dinámico...", Toast.LENGTH_SHORT).show()
-                    },
+                    assignedCount = courses.size,
+                    onNuevaSesionClick = onNewSessionClick,
                     onMisCursosClick = { onNavigateToRoute(NavRoutes.Courses) },
                     onReportesClick = { onNavigateToRoute(NavRoutes.Reports) },
                     onAjustesClick = {
@@ -153,8 +162,8 @@ fun TeacherHomeScreen(
             }
 
             item {
-                // Recent Activity Section
-                RecentActivitySection()
+                // Recent Activity Section (real)
+                RecentActivitySection(activity = recentActivity)
             }
 
             item {
@@ -188,21 +197,6 @@ fun GreetingSection(userName: String) {
                     color = AppTheme.colors.onSurface
                 )
             }
-
-            Box(
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(CircleShape)
-                    .background(AppTheme.colors.surfaceContainerHigh),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.CalendarToday,
-                    contentDescription = "Fecha",
-                    tint = AppTheme.colors.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
         }
 
         Spacer(modifier = Modifier.height(4.dp))
@@ -212,23 +206,13 @@ fun GreetingSection(userName: String) {
         ) {
             Icon(
                 imageVector = Icons.Outlined.Apartment,
-                contentDescription = "Facultad",
+                contentDescription = "Panel",
                 tint = AppTheme.colors.primary,
                 modifier = Modifier.size(16.dp)
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
-                text = "Facultad de Ingeniería",
-                style = MaterialTheme.typography.bodySmall,
-                color = AppTheme.colors.onSurfaceVariant
-            )
-            Text(
-                text = " • ",
-                style = MaterialTheme.typography.bodySmall,
-                color = AppTheme.colors.outline
-            )
-            Text(
-                text = "Semestre 2024-II",
+                text = "Gestión de asistencia",
                 style = MaterialTheme.typography.bodySmall,
                 color = AppTheme.colors.onSurfaceVariant
             )
@@ -237,7 +221,13 @@ fun GreetingSection(userName: String) {
 }
 
 @Composable
-fun ActiveSessionCard(onVerQrClick: () -> Unit) {
+fun ActiveSessionCard(
+    activeSession: dev.leo.smartattendance.domain.model.Session?,
+    presentCount: Int,
+    enrolledCount: Int,
+    onVerQrClick: () -> Unit,
+    onNewSessionClick: () -> Unit
+) {
     Card(
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainerLowest),
@@ -246,10 +236,50 @@ fun ActiveSessionCard(onVerQrClick: () -> Unit) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            // Top Row: Course badge & LiveBadge
+        Column(modifier = Modifier.padding(16.dp)) {
+            if (activeSession == null) {
+                // Estado vacío: no hay sesión activa.
+                Text(
+                    text = "Sin sesión activa",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = AppTheme.colors.onSurface
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Inicia una sesión para generar el código QR de asistencia en el aula.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AppTheme.colors.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+                Button(
+                    onClick = onNewSessionClick,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AppTheme.colors.primaryContainer,
+                        contentColor = Color.White
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.AddBox,
+                        contentDescription = "Nueva sesión",
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Iniciar sesión de asistencia",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                }
+                return@Column
+            }
+
+            val quorum = if (enrolledCount > 0) presentCount.toFloat() / enrolledCount else 0f
+            val quorumPct = (quorum * 100).toInt().coerceIn(0, 100)
+
+            // Top Row: título de sesión & Live Badge
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -260,14 +290,13 @@ fun ActiveSessionCard(onVerQrClick: () -> Unit) {
                     color = AppTheme.colors.surfaceContainerHigh
                 ) {
                     Text(
-                        text = "AULA Magna B-201",
+                        text = activeSession.title.ifBlank { "Sesión de asistencia" },
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                         color = AppTheme.colors.onSurface,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                     )
                 }
 
-                // Live Badge
                 Surface(
                     shape = CircleShape,
                     color = AppTheme.colors.successBg
@@ -294,44 +323,15 @@ fun ActiveSessionCard(onVerQrClick: () -> Unit) {
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Main Course Details
             Text(
-                text = "Algoritmos y Estructuras de Datos",
+                text = activeSession.courseName.ifBlank { "Curso" },
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = AppTheme.colors.onSurface
             )
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(top = 2.dp)
-            ) {
-                Text(
-                    text = "Grupo B",
-                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-                    color = AppTheme.colors.primary
-                )
-                Text(
-                    text = " • ",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = AppTheme.colors.outline
-                )
-                Icon(
-                    imageVector = Icons.Outlined.Timer,
-                    contentDescription = "Timer",
-                    tint = AppTheme.colors.primary,
-                    modifier = Modifier.size(14.dp)
-                )
-                Spacer(modifier = Modifier.width(3.dp))
-                Text(
-                    text = "En curso (hace 12 min)",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = AppTheme.colors.onSurfaceVariant
-                )
-            }
-
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Roster Progress Metric & Circular Ring Gauge
+            // Quórum real (presentes / inscritos)
             Surface(
                 shape = RoundedCornerShape(14.dp),
                 color = AppTheme.colors.surfaceContainerLow,
@@ -342,17 +342,15 @@ fun ActiveSessionCard(onVerQrClick: () -> Unit) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(
-                        modifier = Modifier.weight(1f)
-                    ) {
+                    Column(modifier = Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text(
-                                text = "18",
+                                text = "$presentCount",
                                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                                 color = AppTheme.colors.onSurface
                             )
                             Text(
-                                text = " / 24 estudiantes",
+                                text = if (enrolledCount > 0) " / $enrolledCount estudiantes" else " registrados",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = AppTheme.colors.onSurfaceVariant,
                                 modifier = Modifier.padding(bottom = 2.dp, start = 2.dp)
@@ -360,7 +358,7 @@ fun ActiveSessionCard(onVerQrClick: () -> Unit) {
                         }
 
                         Text(
-                            text = "75% quórum verificado",
+                            text = if (enrolledCount > 0) "$quorumPct% quórum registrado" else "Registros recibidos",
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                             color = AppTheme.colors.secondary
                         )
@@ -368,7 +366,7 @@ fun ActiveSessionCard(onVerQrClick: () -> Unit) {
                         Spacer(modifier = Modifier.height(6.dp))
 
                         LinearProgressIndicator(
-                            progress = { 0.75f },
+                            progress = { quorum },
                             color = AppTheme.colors.primaryContainer,
                             trackColor = AppTheme.colors.surfaceContainerHighest,
                             strokeCap = StrokeCap.Round,
@@ -381,7 +379,6 @@ fun ActiveSessionCard(onVerQrClick: () -> Unit) {
 
                     Spacer(modifier = Modifier.width(16.dp))
 
-                    // Circular Progress Ring Gauge
                     val trackColor = AppTheme.colors.surfaceContainerHighest
                     val progressColor = AppTheme.colors.primaryContainer
                     Box(
@@ -390,20 +387,17 @@ fun ActiveSessionCard(onVerQrClick: () -> Unit) {
                     ) {
                         Canvas(modifier = Modifier.fillMaxSize()) {
                             val stroke = 10f
-                            drawCircle(
-                                color = trackColor,
-                                style = Stroke(width = stroke)
-                            )
+                            drawCircle(color = trackColor, style = Stroke(width = stroke))
                             drawArc(
                                 color = progressColor,
                                 startAngle = -90f,
-                                sweepAngle = 360f * 0.75f,
+                                sweepAngle = 360f * quorum,
                                 useCenter = false,
                                 style = Stroke(width = stroke, cap = StrokeCap.Round)
                             )
                         }
                         Text(
-                            text = "75%",
+                            text = "$quorumPct%",
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                             color = AppTheme.colors.onSurface
                         )
@@ -413,7 +407,6 @@ fun ActiveSessionCard(onVerQrClick: () -> Unit) {
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // CTA Button: Ver QR / Modo Proyector
             Button(
                 onClick = onVerQrClick,
                 shape = RoundedCornerShape(12.dp),
@@ -465,6 +458,7 @@ fun ActiveSessionCard(onVerQrClick: () -> Unit) {
 
 @Composable
 fun QuickActionsGrid(
+    assignedCount: Int = 0,
     onNuevaSesionClick: () -> Unit,
     onMisCursosClick: () -> Unit,
     onReportesClick: () -> Unit,
@@ -578,7 +572,7 @@ fun QuickActionsGrid(
                             color = AppTheme.colors.onSurface
                         )
                         Text(
-                            text = "3 activos asignados",
+                            text = if (assignedCount == 1) "1 activo asignado" else "$assignedCount activos asignados",
                             style = MaterialTheme.typography.labelSmall,
                             color = AppTheme.colors.onSurfaceVariant
                         )
@@ -900,28 +894,19 @@ fun CourseCardItem(
 }
 
 @Composable
-fun RecentActivitySection() {
+fun RecentActivitySection(
+    activity: List<dev.leo.smartattendance.domain.model.TeacherActivity> = emptyList()
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Actividad Reciente",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = AppTheme.colors.onSurface
-            )
-            Text(
-                text = "Hoy",
-                style = MaterialTheme.typography.labelSmall,
-                color = AppTheme.colors.onSurfaceVariant
-            )
-        }
+        Text(
+            text = "Actividad Reciente",
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            color = AppTheme.colors.onSurface
+        )
 
         Spacer(modifier = Modifier.height(10.dp))
 
@@ -931,191 +916,133 @@ fun RecentActivitySection() {
             shadowElevation = 1.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(
-                modifier = Modifier.padding(14.dp)
-            ) {
-                // Item 1
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.Top
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(AppTheme.colors.surfaceContainerHigh),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.TaskAlt,
-                            contentDescription = "Task",
-                            tint = AppTheme.colors.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "Sesión cerrada: Bases de Datos",
-                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                                color = AppTheme.colors.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f)
+            Column(modifier = Modifier.padding(14.dp)) {
+                if (activity.isEmpty()) {
+                    Text(
+                        text = "Aún no hay actividad. Las sesiones que inicies o cierres aparecerán aquí.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AppTheme.colors.onSurfaceVariant
+                    )
+                } else {
+                    activity.forEachIndexed { index, item ->
+                        TeacherActivityRowItem(item)
+                        if (index < activity.lastIndex) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(1.dp)
+                                    .background(AppTheme.colors.surfaceContainerLow)
                             )
-                            Text(
-                                text = "11:45",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = AppTheme.colors.onSurfaceVariant
-                            )
-                        }
-
-                        Text(
-                            text = "29/32 presentes, con 2 registros catalogados en tardanza.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = AppTheme.colors.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 2.dp)
-                        )
-
-                        Spacer(modifier = Modifier.height(6.dp))
-
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Surface(
-                                shape = CircleShape,
-                                color = AppTheme.colors.successBg
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(6.dp)
-                                            .clip(CircleShape)
-                                            .background(AppTheme.colors.successText)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = "29 Presentes",
-                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                        color = AppTheme.colors.successText
-                                    )
-                                }
-                            }
-
-                            Surface(
-                                shape = CircleShape,
-                                color = AppTheme.colors.warningBg
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(6.dp)
-                                            .clip(CircleShape)
-                                            .background(AppTheme.colors.warningText)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = "2 Tardanzas",
-                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                        color = AppTheme.colors.warningText
-                                    )
-                                }
-                            }
+                            Spacer(modifier = Modifier.height(12.dp))
                         }
                     }
                 }
+            }
+        }
+    }
+}
 
-                Spacer(modifier = Modifier.height(12.dp))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(1.dp)
-                        .background(AppTheme.colors.surfaceContainerLow)
+private val activityTimeFormat = java.text.SimpleDateFormat("dd/MM HH:mm", java.util.Locale.forLanguageTag("es"))
+
+@Composable
+private fun TeacherActivityRowItem(item: dev.leo.smartattendance.domain.model.TeacherActivity) {
+    val isClosed = item.status.equals("CLOSED", ignoreCase = true)
+    val whenMillis = item.closedAtMillis ?: item.startsAtMillis
+    val whenText = if (whenMillis != null && whenMillis > 0L)
+        activityTimeFormat.format(java.util.Date(whenMillis)) else "—"
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Top
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(if (isClosed) AppTheme.colors.surfaceContainerHigh else AppTheme.colors.secondaryFixed),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = if (isClosed) Icons.Outlined.TaskAlt else Icons.Outlined.QrCodeScanner,
+                contentDescription = null,
+                tint = if (isClosed) AppTheme.colors.primary else AppTheme.colors.secondary,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = (if (isClosed) "Sesión cerrada: " else "Sesión activa: ") + item.courseName,
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                    color = AppTheme.colors.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = whenText,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = AppTheme.colors.onSurfaceVariant
+                )
+            }
 
-                // Item 2
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.Top
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(AppTheme.colors.secondaryFixed),
-                        contentAlignment = Alignment.Center
+            Text(
+                text = item.title.ifBlank { "Sesión de asistencia" },
+                style = MaterialTheme.typography.bodySmall,
+                color = AppTheme.colors.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 2.dp)
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Surface(shape = CircleShape, color = AppTheme.colors.successBg) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.EditNote,
-                            contentDescription = "Note",
-                            tint = AppTheme.colors.secondary,
-                            modifier = Modifier.size(20.dp)
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(AppTheme.colors.successText)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "${item.presentCount} Presentes",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                            color = AppTheme.colors.successText
                         )
                     }
+                }
 
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
+                if (item.lateCount > 0) {
+                    Surface(shape = CircleShape, color = AppTheme.colors.warningBg) {
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                         ) {
-                            Text(
-                                text = "Asistencia corregida manualmente",
-                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                                color = AppTheme.colors.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f)
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(AppTheme.colors.warningText)
                             )
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "11:50",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = AppTheme.colors.onSurfaceVariant
+                                text = "${item.lateCount} Tardanzas",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                color = AppTheme.colors.warningText
                             )
-                        }
-
-                        Text(
-                            text = "Carlos Mendoza actualizado tras comprobante de decanatura.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = AppTheme.colors.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 2.dp)
-                        )
-
-                        Spacer(modifier = Modifier.height(6.dp))
-
-                        Surface(
-                            shape = CircleShape,
-                            color = AppTheme.colors.infoBg
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(6.dp)
-                                        .clip(CircleShape)
-                                        .background(AppTheme.colors.infoText)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "Justificado Médico",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                    color = AppTheme.colors.infoText
-                                )
-                            }
                         }
                     }
                 }

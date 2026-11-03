@@ -25,6 +25,32 @@ data class RecentSessionRow(
     val myStatus: String?
 )
 
+/** Resultado de crear una sesión con su primer token de QR. */
+data class CreatedSession(
+    val sessionId: String,
+    val courseId: String,
+    val token: String,
+    val tokenExpiresAtMillis: Long
+)
+
+/** Resultado de renovar el token del QR. */
+data class RotatedToken(
+    val token: String,
+    val tokenExpiresAtMillis: Long
+)
+
+/** Fila de actividad reciente del docente. */
+data class TeacherActivityRow(
+    val sessionId: String,
+    val courseName: String,
+    val title: String,
+    val status: String,
+    val startsAtMillis: Long?,
+    val closedAtMillis: Long?,
+    val presentCount: Int,
+    val lateCount: Int
+)
+
 class FirebaseFirestoreDataSource(private val db: FirebaseFirestore) {
 
     // Cache de nombres de docente por uid (evita releer users en cada snapshot).
@@ -170,8 +196,9 @@ class FirebaseFirestoreDataSource(private val db: FirebaseFirestore) {
                     doc.toObject(CourseDto::class.java)?.copy(id = doc.id)
                 } ?: emptyList()
 
+                // Solo los cursos asignados a este docente (debe estar en teacherIds).
                 val filtered = list.filter { course ->
-                    course.teacherIds.isEmpty() || course.teacherIds.contains(teacherId)
+                    teacherId.isNotBlank() && course.teacherIds.contains(teacherId)
                 }
                 trySend(filtered)
             }
@@ -346,6 +373,13 @@ class FirebaseFirestoreDataSource(private val db: FirebaseFirestore) {
     }
 
     // --- SESSION OPERATIONS ---
+    /** Lee un campo de fecha tolerando Timestamp (panel web) o Long (app). */
+    private fun readMillis(raw: Any?): Long = when (raw) {
+        is com.google.firebase.Timestamp -> raw.toDate().time
+        is Number -> raw.toLong()
+        else -> 0L
+    }
+
     fun getActiveSessionFlow(teacherId: String): Flow<SessionDto?> = callbackFlow {
         val listener = db.collection("sessions")
             .whereEqualTo("teacherId", teacherId)
@@ -356,7 +390,21 @@ class FirebaseFirestoreDataSource(private val db: FirebaseFirestore) {
                     return@addSnapshotListener
                 }
                 val activeDoc = snapshot?.documents?.firstOrNull()
-                val session = activeDoc?.toObject(SessionDto::class.java)?.copy(id = activeDoc.id)
+                // Lectura manual: startsAt/expiresAt pueden venir como Timestamp (web) o Long (app).
+                val session = activeDoc?.let { doc ->
+                    SessionDto(
+                        id = doc.id,
+                        courseId = doc.getString("courseId") ?: "",
+                        courseName = doc.getString("courseName") ?: "",
+                        title = doc.getString("title") ?: "",
+                        room = doc.getString("room") ?: "",
+                        teacherId = doc.getString("teacherId") ?: "",
+                        status = doc.getString("status") ?: "ACTIVE",
+                        token = doc.getString("token") ?: "",
+                        startsAt = readMillis(doc.get("startsAt")),
+                        expiresAt = readMillis(doc.get("expiresAt"))
+                    )
+                }
                 trySend(session)
             }
         awaitClose { listener.remove() }
@@ -380,11 +428,199 @@ class FirebaseFirestoreDataSource(private val db: FirebaseFirestore) {
 
     suspend fun closeSession(sessionId: String) {
         try {
+            // Al cerrar, invalida también los tokens activos del QR.
             db.collection("sessions").document(sessionId)
-                .update("status", "CLOSED")
+                .update(
+                    mapOf(
+                        "status" to "CLOSED",
+                        "closedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
+                    )
+                )
                 .await()
+            revokeActiveTokens(sessionId)
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+
+    /**
+     * Crea una sesión ACTIVE para el docente y genera el primer token del QR (igual que el panel web).
+     * Guarda solo el hash SHA-256 del token en sessionTokens; el token en claro vuelve una vez para
+     * dibujar el QR. Devuelve null si algo falla.
+     *
+     * @param durationMinutes duración total de la sesión.
+     * @param qrSeconds vigencia del token del QR (se renueva periódicamente desde la UI).
+     */
+    suspend fun createSessionWithToken(
+        courseId: String,
+        courseName: String,
+        title: String,
+        teacherId: String,
+        startsAtMillis: Long = System.currentTimeMillis(),
+        durationMinutes: Int = 90,
+        lateAfterMinutes: Int? = null,
+        qrSeconds: Int = 60
+    ): CreatedSession? {
+        return try {
+            val start = startsAtMillis
+            val sessionRef = db.collection("sessions").document()
+            val sessionId = sessionRef.id
+            val lateAfter = lateAfterMinutes?.let {
+                com.google.firebase.Timestamp(java.util.Date(start + it * 60_000L))
+            }
+            val sessionData = hashMapOf(
+                "id" to sessionId,
+                "courseId" to courseId,
+                "courseName" to courseName,
+                "title" to title,
+                "teacherId" to teacherId,
+                "status" to "ACTIVE",
+                "startsAt" to com.google.firebase.Timestamp(java.util.Date(start)),
+                "expiresAt" to com.google.firebase.Timestamp(java.util.Date(start + durationMinutes * 60_000L)),
+                "lateAfter" to lateAfter,
+                "createdAt" to com.google.firebase.firestore.FieldValue.serverTimestamp(),
+                "closedAt" to null
+            )
+            sessionRef.set(sessionData).await()
+
+            val token = generateToken()
+            val tokenExpiresAt = writeToken(sessionId, courseId, token, qrSeconds, teacherId)
+            CreatedSession(sessionId = sessionId, courseId = courseId, token = token, tokenExpiresAtMillis = tokenExpiresAt)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    /**
+     * Renueva el token del QR de una sesión: expira los activos y crea uno nuevo.
+     * Devuelve el token en claro y su expiración, o null si falla.
+     */
+    suspend fun rotateSessionToken(
+        sessionId: String,
+        courseId: String,
+        qrSeconds: Int = 60
+    ): RotatedToken? {
+        return try {
+            val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
+            revokeActiveTokens(sessionId)
+            val token = generateToken()
+            val expiresAt = writeToken(sessionId, courseId, token, qrSeconds, uid)
+            RotatedToken(token = token, tokenExpiresAtMillis = expiresAt)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    /**
+     * Escribe un token (solo su hash) en sessionTokens y devuelve su expiración en millis.
+     * createdBy debe ser el uid del docente (lo exigen las reglas de Firestore).
+     */
+    private suspend fun writeToken(sessionId: String, courseId: String, token: String, qrSeconds: Int, createdBy: String): Long {
+        val expiresAt = System.currentTimeMillis() + qrSeconds * 1000L
+        val data = hashMapOf(
+            "sessionId" to sessionId,
+            "courseId" to courseId,
+            "tokenHash" to sha256Hex(token),
+            "status" to "ACTIVE",
+            "expiresAt" to com.google.firebase.Timestamp(java.util.Date(expiresAt)),
+            "createdBy" to createdBy,
+            "createdAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
+        )
+        db.collection("sessionTokens").add(data).await()
+        return expiresAt
+    }
+
+    /** Revoca (status REVOKED) los tokens ACTIVE de una sesión. Las reglas solo permiten este cambio. */
+    private suspend fun revokeActiveTokens(sessionId: String) {
+        try {
+            val active = db.collection("sessionTokens")
+                .whereEqualTo("sessionId", sessionId)
+                .whereEqualTo("status", "ACTIVE")
+                .get()
+                .await()
+            for (doc in active.documents) {
+                doc.reference.update("status", "REVOKED").await()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    /** Token aleatorio de 10 caracteres (A-Z0-9), mismo espacio que randomCode del web. */
+    private fun generateToken(): String {
+        val alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        val rnd = java.security.SecureRandom()
+        return (1..10).map { alphabet[rnd.nextInt(alphabet.length)] }.joinToString("")
+    }
+
+    /** Nº de inscritos ACTIVE en un curso (para el quórum de la sesión). */
+    suspend fun getEnrolledCount(courseId: String): Int {
+        return try {
+            db.collection("enrollments")
+                .whereEqualTo("courseId", courseId)
+                .whereEqualTo("status", "ACTIVE")
+                .get()
+                .await()
+                .size()
+        } catch (e: Exception) {
+            0
+        }
+    }
+
+    /**
+     * Sesiones recientes del docente con un resumen (presentes/tardanzas) de cada una.
+     * Se usa para "Actividad reciente" del panel del docente.
+     */
+    suspend fun getTeacherRecentActivity(teacherId: String, limit: Int = 6): List<TeacherActivityRow> {
+        return try {
+            val sessionsSnap = db.collection("sessions")
+                .whereEqualTo("teacherId", teacherId)
+                .get()
+                .await()
+
+            val rows = sessionsSnap.documents.map { doc ->
+                val startsAt: Long? = when (val raw = doc.get("startsAt")) {
+                    is com.google.firebase.Timestamp -> raw.toDate().time
+                    is Number -> raw.toLong()
+                    else -> null
+                }
+                val closedAt: Long? = when (val raw = doc.get("closedAt")) {
+                    is com.google.firebase.Timestamp -> raw.toDate().time
+                    is Number -> raw.toLong()
+                    else -> null
+                }
+                val sessionId = doc.id
+                // Resumen de asistencia de la sesión.
+                var present = 0
+                var late = 0
+                try {
+                    val att = db.collection("attendances")
+                        .whereEqualTo("sessionId", sessionId)
+                        .get()
+                        .await()
+                    for (a in att.documents) {
+                        when (a.getString("status")?.uppercase()) {
+                            "PRESENT" -> present++
+                            "LATE" -> late++
+                        }
+                    }
+                } catch (_: Exception) { }
+                TeacherActivityRow(
+                    sessionId = sessionId,
+                    courseName = doc.getString("courseName")?.ifBlank { "Curso" } ?: "Curso",
+                    title = doc.getString("title")?.ifBlank { "Sesión" } ?: "Sesión",
+                    status = doc.getString("status")?.uppercase() ?: "ACTIVE",
+                    startsAtMillis = startsAt,
+                    closedAtMillis = closedAt,
+                    presentCount = present,
+                    lateCount = late
+                )
+            }
+            rows.sortedByDescending { (it.closedAtMillis ?: it.startsAtMillis) ?: 0L }.take(limit)
+        } catch (e: Exception) {
+            emptyList()
         }
     }
 

@@ -29,6 +29,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -42,6 +43,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,33 +56,71 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.leo.smartattendance.core.common.QrCodeGenerator
 import dev.leo.smartattendance.core.designsystem.SmartAttendanceHeader
+import dev.leo.smartattendance.domain.model.QrSession
 import dev.leo.smartattendance.domain.repository.CourseRepository
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import org.json.JSONObject
+
+/** Vigencia del token del QR en segundos (igual que el panel web). */
+private const val QR_SECONDS = 60
+
+/** Payload del QR: JSON { v:1, sessionId, courseId, token, courseName, title }. */
+private fun buildQrPayload(session: QrSession): String =
+    JSONObject()
+        .put("v", 1)
+        .put("sessionId", session.sessionId)
+        .put("courseId", session.courseId)
+        .put("token", session.token)
+        .put("courseName", session.courseName)
+        .put("title", session.title)
+        .toString()
 
 @Composable
 fun TeacherQrDisplayScreen(
-    courseName: String = "Algoritmos y Estructuras de Datos",
-    sessionTitle: String = "Semana Técnica - Sesión 1",
-    sessionId: String = "session_01",
+    session: QrSession,
+    enrolledCount: Int = 0,
     courseRepository: CourseRepository? = null,
     onCloseSession: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    var qrToken by remember { mutableStateOf("SESSION_TOKEN_${System.currentTimeMillis()}") }
+    val scope = rememberCoroutineScope()
+
+    // Sesión/token vigente (se actualiza al renovar).
+    var currentSession by remember { mutableStateOf(session) }
     var qrBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    var secondsRemaining by remember { mutableIntStateOf(900) }
+    var secondsRemaining by remember { mutableIntStateOf(QR_SECONDS) }
+    var closing by remember { mutableStateOf(false) }
 
-    val liveAttendances = courseRepository?.getLiveAttendancesFlow(sessionId)?.collectAsState(initial = emptyList())?.value ?: emptyList()
-    val presentCount = if (liveAttendances.isNotEmpty()) liveAttendances.size else 18
+    val liveAttendances = courseRepository
+        ?.getLiveAttendancesFlow(currentSession.sessionId)
+        ?.collectAsState(initial = emptyList())?.value ?: emptyList()
+    val presentCount = liveAttendances.size
 
-    LaunchedEffect(qrToken) {
-        qrBitmap = QrCodeGenerator.generateQrBitmap(qrToken, 600, 600)
+    // Dibuja el QR con el payload real cada vez que cambia el token.
+    LaunchedEffect(currentSession.token) {
+        qrBitmap = QrCodeGenerator.generateQrBitmap(buildQrPayload(currentSession), 600, 600)
     }
 
-    LaunchedEffect(secondsRemaining) {
-        if (secondsRemaining > 0) {
+    // Cuenta regresiva del token; al llegar a 0 renueva automáticamente (como el web).
+    LaunchedEffect(currentSession.token) {
+        val expiresInMs = currentSession.tokenExpiresAtMillis - System.currentTimeMillis()
+        secondsRemaining = (expiresInMs / 1000L).toInt().coerceIn(0, QR_SECONDS)
+        while (secondsRemaining > 0) {
             delay(1000)
             secondsRemaining -= 1
+        }
+        // Expiró: renueva el token automáticamente.
+        val rotated = courseRepository?.rotateSessionToken(
+            currentSession.sessionId,
+            currentSession.courseId,
+            QR_SECONDS
+        )
+        if (rotated != null) {
+            currentSession = currentSession.copy(
+                token = rotated.token,
+                tokenExpiresAtMillis = rotated.tokenExpiresAtMillis
+            )
         }
     }
 
@@ -130,13 +170,13 @@ fun TeacherQrDisplayScreen(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
-                        text = courseName,
+                        text = currentSession.courseName.ifBlank { "Curso" },
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = AppTheme.colors.onSurface
                     )
 
                     Text(
-                        text = sessionTitle,
+                        text = currentSession.title.ifBlank { "Sesión de asistencia" },
                         style = MaterialTheme.typography.bodySmall,
                         color = AppTheme.colors.onSurfaceVariant
                     )
@@ -183,7 +223,7 @@ fun TeacherQrDisplayScreen(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "Expira en $timeFormatted",
+                                text = "Renueva en $timeFormatted",
                                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                                 color = AppTheme.colors.onSurface
                             )
@@ -194,7 +234,8 @@ fun TeacherQrDisplayScreen(
                             color = AppTheme.colors.surfaceContainerHigh
                         ) {
                             Text(
-                                text = "$presentCount / 24 Registrados",
+                                text = if (enrolledCount > 0) "$presentCount / $enrolledCount Registrados"
+                                       else "$presentCount Registrados",
                                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                                 color = AppTheme.colors.primary,
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
@@ -211,9 +252,22 @@ fun TeacherQrDisplayScreen(
                     ) {
                         OutlinedButton(
                             onClick = {
-                                qrToken = "SESSION_TOKEN_${System.currentTimeMillis()}"
-                                secondsRemaining = 900
-                                Toast.makeText(context, "QR Renovado", Toast.LENGTH_SHORT).show()
+                                scope.launch {
+                                    val rotated = courseRepository?.rotateSessionToken(
+                                        currentSession.sessionId,
+                                        currentSession.courseId,
+                                        QR_SECONDS
+                                    )
+                                    if (rotated != null) {
+                                        currentSession = currentSession.copy(
+                                            token = rotated.token,
+                                            tokenExpiresAtMillis = rotated.tokenExpiresAtMillis
+                                        )
+                                        Toast.makeText(context, "QR renovado", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(context, "No se pudo renovar el QR", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
                             },
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.weight(1f)
@@ -229,21 +283,35 @@ fun TeacherQrDisplayScreen(
 
                         Button(
                             onClick = {
-                                Toast.makeText(context, "Sesión cerrada", Toast.LENGTH_SHORT).show()
-                                onCloseSession()
+                                if (closing) return@Button
+                                closing = true
+                                scope.launch {
+                                    courseRepository?.closeSession(currentSession.sessionId)
+                                    Toast.makeText(context, "Sesión cerrada", Toast.LENGTH_SHORT).show()
+                                    onCloseSession()
+                                }
                             },
+                            enabled = !closing,
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.weight(1f)
                         ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Close,
-                                contentDescription = "Cerrar",
-                                tint = Color.White,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Cerrar Sesión", color = Color.White, fontSize = 12.sp)
+                            if (closing) {
+                                CircularProgressIndicator(
+                                    color = Color.White,
+                                    strokeWidth = 2.dp,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Outlined.Close,
+                                    contentDescription = "Cerrar",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Cerrar Sesión", color = Color.White, fontSize = 12.sp)
+                            }
                         }
                     }
                 }

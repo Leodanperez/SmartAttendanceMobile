@@ -19,9 +19,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.AddBox
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -30,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.leo.smartattendance.domain.model.Course
@@ -46,6 +50,8 @@ fun CourseDetailScreen(
     course: Course,
     sessions: List<CourseSessionSummary> = emptyList(),
     isLoadingSessions: Boolean = false,
+    isTeacher: Boolean = false,
+    onCreateSession: () -> Unit = {},
     onNavigateBack: () -> Unit = {}
 ) {
     val colors = AppTheme.colors
@@ -133,43 +139,71 @@ fun CourseDetailScreen(
 
             item { Spacer(modifier = Modifier.height(14.dp)) }
 
-            // Tarjeta de asistencia.
-            item {
-                val hasData = course.attendanceRate >= 0
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = if (hasData) colors.successBg else colors.surfaceContainerLowest,
-                    shadowElevation = 1.dp,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
+            // Docente: botón para crear sesión de asistencia.
+            if (isTeacher) {
+                item {
+                    Button(
+                        onClick = onCreateSession,
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colors.primaryContainer,
+                            contentColor = Color.White
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.CheckCircle,
+                            imageVector = Icons.Outlined.AddBox,
                             contentDescription = null,
-                            tint = if (hasData) colors.successText else colors.onSurfaceVariant,
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(20.dp)
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = "Mi asistencia",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = colors.onSurfaceVariant
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Crear sesión de asistencia",
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
+                        )
+                    }
+                }
+                item { Spacer(modifier = Modifier.height(14.dp)) }
+            } else {
+                // Alumno: tarjeta de asistencia.
+                item {
+                    val hasData = course.attendanceRate >= 0
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = if (hasData) colors.successBg else colors.surfaceContainerLowest,
+                        shadowElevation = 1.dp,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.CheckCircle,
+                                contentDescription = null,
+                                tint = if (hasData) colors.successText else colors.onSurfaceVariant,
+                                modifier = Modifier.size(28.dp)
                             )
-                            Text(
-                                text = if (hasData) "${course.attendanceRate}%" else "Sin datos",
-                                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                                color = if (hasData) colors.successText else colors.onSurface
-                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "Mi asistencia",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = colors.onSurfaceVariant
+                                )
+                                Text(
+                                    text = if (hasData) "${course.attendanceRate}%" else "Sin datos",
+                                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = if (hasData) colors.successText else colors.onSurface
+                                )
+                            }
                         }
                     }
                 }
+                item { Spacer(modifier = Modifier.height(14.dp)) }
             }
-
-            item { Spacer(modifier = Modifier.height(14.dp)) }
 
             // Horario.
             item {
