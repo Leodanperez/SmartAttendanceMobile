@@ -15,6 +15,16 @@ import kotlinx.coroutines.tasks.await
 /** El estudiante ya tiene asistencia en esta sesión. No tiene sentido reintentar. */
 class AlreadyRegisteredException : Exception("Ya registraste tu asistencia en esta sesión")
 
+/** Fila de sesión reciente para el detalle del curso del estudiante. */
+data class RecentSessionRow(
+    val id: String,
+    val title: String,
+    val status: String,
+    val startsAtMillis: Long?,
+    /** Estado del registro del estudiante en esta sesión (PRESENT/LATE/…), o null si no registró. */
+    val myStatus: String?
+)
+
 class FirebaseFirestoreDataSource(private val db: FirebaseFirestore) {
 
     // Cache de nombres de docente por uid (evita releer users en cada snapshot).
@@ -74,6 +84,52 @@ class FirebaseFirestoreDataSource(private val db: FirebaseFirestore) {
             ((attended.toDouble() / denominator) * 100).toInt().coerceIn(0, 100)
         } catch (e: Exception) {
             -1
+        }
+    }
+
+    /**
+     * Sesiones recientes de un curso (máx. [limit]) con el estado del registro del estudiante.
+     * Lee startsAt de forma tolerante: el panel web lo escribe como Timestamp y la app lo trataba
+     * como Long, así que aquí se admiten ambos. Las sesiones se ordenan por fecha descendente.
+     */
+    suspend fun getRecentCourseSessions(
+        courseId: String,
+        studentId: String,
+        limit: Int = 8
+    ): List<RecentSessionRow> {
+        return try {
+            val sessionsSnap = db.collection("sessions")
+                .whereEqualTo("courseId", courseId)
+                .get()
+                .await()
+
+            // Registros del estudiante en el curso, indexados por sessionId.
+            val myAttendance = db.collection("attendances")
+                .whereEqualTo("courseId", courseId)
+                .whereEqualTo("studentId", studentId)
+                .get()
+                .await()
+            val statusBySession = myAttendance.documents.associate { doc ->
+                (doc.getString("sessionId") ?: "") to (doc.getString("status")?.uppercase() ?: "")
+            }
+
+            sessionsSnap.documents.map { doc ->
+                val startsAt: Long? = when (val raw = doc.get("startsAt")) {
+                    is com.google.firebase.Timestamp -> raw.toDate().time
+                    is Number -> raw.toLong()
+                    else -> null
+                }
+                RecentSessionRow(
+                    id = doc.id,
+                    title = doc.getString("title")?.ifBlank { "Sesión" } ?: "Sesión",
+                    status = doc.getString("status")?.uppercase() ?: "ACTIVE",
+                    startsAtMillis = startsAt,
+                    myStatus = statusBySession[doc.id]?.takeIf { it.isNotBlank() }
+                )
+            }.sortedByDescending { it.startsAtMillis ?: 0L }
+                .take(limit)
+        } catch (e: Exception) {
+            emptyList()
         }
     }
 
@@ -208,7 +264,13 @@ class FirebaseFirestoreDataSource(private val db: FirebaseFirestore) {
                         teacherIds = listOf(teacherId),
                         teacherName = "Prof. Morales",
                         studentCount = 28,
-                        schedule = "Lun / Mié 08:00 - 10:00"
+                        careerName = "Desarrollo de Sistemas de Información",
+                        semester = 3,
+                        academicPeriodName = "2026-II",
+                        schedule = listOf(
+                            mapOf("day" to "MON", "start" to "08:00", "end" to "10:00"),
+                            mapOf("day" to "WED", "start" to "08:00", "end" to "10:00")
+                        )
                     ),
                     CourseDto(
                         id = "c2",
@@ -219,7 +281,13 @@ class FirebaseFirestoreDataSource(private val db: FirebaseFirestore) {
                         teacherIds = listOf(teacherId),
                         teacherName = "Prof. Morales",
                         studentCount = 32,
-                        schedule = "Mar / Jue 10:00 - 12:00"
+                        careerName = "Desarrollo de Sistemas de Información",
+                        semester = 4,
+                        academicPeriodName = "2026-II",
+                        schedule = listOf(
+                            mapOf("day" to "TUE", "start" to "10:00", "end" to "12:00"),
+                            mapOf("day" to "THU", "start" to "10:00", "end" to "12:00")
+                        )
                     ),
                     CourseDto(
                         id = "c3",
@@ -230,7 +298,12 @@ class FirebaseFirestoreDataSource(private val db: FirebaseFirestore) {
                         teacherIds = listOf(teacherId),
                         teacherName = "Prof. Morales",
                         studentCount = 22,
-                        schedule = "Vie 14:00 - 18:00"
+                        careerName = "Desarrollo de Sistemas de Información",
+                        semester = 5,
+                        academicPeriodName = "2026-II",
+                        schedule = listOf(
+                            mapOf("day" to "FRI", "start" to "14:00", "end" to "18:00")
+                        )
                     )
                 )
                 for (course in initialCourses) {

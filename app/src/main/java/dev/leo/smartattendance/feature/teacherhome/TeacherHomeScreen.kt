@@ -1,4 +1,5 @@
 package dev.leo.smartattendance.feature.teacherhome
+import dev.leo.smartattendance.domain.model.scheduleSummary
 import dev.leo.smartattendance.ui.theme.AppTheme
 
 import android.widget.Toast
@@ -689,9 +690,26 @@ fun AssignedCoursesSection(
     onVerTodosClick: () -> Unit
 ) {
     val displayCourses = if (courses.isNotEmpty()) courses else listOf(
-        dev.leo.smartattendance.domain.model.Course("c1", "CS201", "Algoritmos y Estructuras", "Lab 4 • 28 alumnos", schedule = "Lun / Mié 08:00 - 10:00"),
-        dev.leo.smartattendance.domain.model.Course("c2", "CS304", "Bases de Datos Avanzadas", "Aula 102 • 32 alumnos", schedule = "Mar / Jue 10:00 - 12:00"),
-        dev.leo.smartattendance.domain.model.Course("c3", "CS402", "Inteligencia Artificial", "Pab. Robótica • 22 alumnos", schedule = "Vie 14:00 - 18:00")
+        dev.leo.smartattendance.domain.model.Course(
+            "c1", "CS201", "Algoritmos y Estructuras", "Lab 4 • 28 alumnos",
+            schedule = listOf(
+                dev.leo.smartattendance.domain.model.ScheduleBlock("MON", "08:00", "10:00"),
+                dev.leo.smartattendance.domain.model.ScheduleBlock("WED", "08:00", "10:00")
+            )
+        ),
+        dev.leo.smartattendance.domain.model.Course(
+            "c2", "CS304", "Bases de Datos Avanzadas", "Aula 102 • 32 alumnos",
+            schedule = listOf(
+                dev.leo.smartattendance.domain.model.ScheduleBlock("TUE", "10:00", "12:00"),
+                dev.leo.smartattendance.domain.model.ScheduleBlock("THU", "10:00", "12:00")
+            )
+        ),
+        dev.leo.smartattendance.domain.model.Course(
+            "c3", "CS402", "Inteligencia Artificial", "Pab. Robótica • 22 alumnos",
+            schedule = listOf(
+                dev.leo.smartattendance.domain.model.ScheduleBlock("FRI", "14:00", "18:00")
+            )
+        )
     )
 
     Column(
@@ -752,7 +770,7 @@ fun AssignedCoursesSection(
                 sectionInfo = course.section.ifEmpty { "Lab 4 • 28 alumnos" },
                 courseTitle = course.name,
                 attendancePercentage = "${course.attendanceRate.takeIf { it > 0 } ?: 92}% Asist.",
-                schedule = course.schedule.ifEmpty { "Lun / Mié 08:00 - 10:00" }
+                schedule = course.schedule.scheduleSummary()
             )
             Spacer(modifier = Modifier.height(10.dp))
         }
@@ -767,7 +785,8 @@ fun CourseCardItem(
     sectionInfo: String,
     courseTitle: String,
     attendancePercentage: String,
-    schedule: String
+    schedule: String,
+    onDetailClick: () -> Unit = {}
 ) {
     Surface(
         shape = RoundedCornerShape(16.dp),
@@ -855,7 +874,7 @@ fun CourseCardItem(
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = AppTheme.colors.surfaceContainerHigh,
-                    modifier = Modifier.clickable { }
+                    modifier = Modifier.clickable { onDetailClick() }
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,

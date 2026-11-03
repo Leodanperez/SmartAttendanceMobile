@@ -30,6 +30,9 @@ import dev.leo.smartattendance.domain.model.UserRole
 import dev.leo.smartattendance.feature.auth.LoginScreen
 import dev.leo.smartattendance.feature.auth.SignUpScreen
 import dev.leo.smartattendance.feature.auth.SplashScreen
+import dev.leo.smartattendance.domain.model.Course
+import dev.leo.smartattendance.domain.model.CourseSessionSummary
+import dev.leo.smartattendance.feature.coursedetail.CourseDetailScreen
 import dev.leo.smartattendance.feature.courses.CoursesScreen
 import dev.leo.smartattendance.feature.profile.ProfileScreen
 import dev.leo.smartattendance.feature.qrgenerator.TeacherQrDisplayScreen
@@ -75,6 +78,13 @@ class MainActivity : ComponentActivity() {
                         dev.leo.smartattendance.feature.qrscanner.AttendanceUiState.Idle
                     )
                 }
+
+                // Curso seleccionado para la pantalla de detalle y sus sesiones recientes.
+                var selectedCourse by remember { mutableStateOf<Course?>(null) }
+                var detailSessions by remember { mutableStateOf<List<CourseSessionSummary>>(emptyList()) }
+                var loadingDetailSessions by remember { mutableStateOf(false) }
+                // Ruta desde la que se abrió el detalle, para volver a ella con el botón atrás.
+                var detailOrigin by remember { mutableStateOf<NavRoutes>(NavRoutes.StudentHome) }
 
                 // Check session & load user role from Firestore
                 LaunchedEffect(auth.currentUser) {
@@ -200,8 +210,36 @@ class MainActivity : ComponentActivity() {
                                     scope.launch {
                                         courseRepository.enrollStudentByCode(code, currentUser?.uid ?: "")
                                     }
+                                },
+                                onCourseClick = { course ->
+                                    selectedCourse = course
+                                    detailSessions = emptyList()
+                                    loadingDetailSessions = true
+                                    detailOrigin = NavRoutes.StudentHome
+                                    currentRoute = NavRoutes.CourseDetail
+                                    scope.launch {
+                                        detailSessions = courseRepository.getRecentCourseSessions(
+                                            course.id,
+                                            currentUser?.uid ?: ""
+                                        )
+                                        loadingDetailSessions = false
+                                    }
                                 }
                             )
+                        }
+
+                        NavRoutes.CourseDetail -> {
+                            val course = selectedCourse
+                            if (course == null) {
+                                currentRoute = NavRoutes.StudentHome
+                            } else {
+                                CourseDetailScreen(
+                                    course = course,
+                                    sessions = detailSessions,
+                                    isLoadingSessions = loadingDetailSessions,
+                                    onNavigateBack = { currentRoute = detailOrigin }
+                                )
+                            }
                         }
 
                         NavRoutes.Sessions -> {
@@ -297,7 +335,21 @@ class MainActivity : ComponentActivity() {
                                 ) {
                                     when (currentRoute) {
                                         NavRoutes.Courses -> CoursesScreen(
-                                            courses = if (effectiveRole == UserRole.STUDENT) studentCourses else teacherCourses
+                                            courses = if (effectiveRole == UserRole.STUDENT) studentCourses else teacherCourses,
+                                            onCourseClick = { course ->
+                                                selectedCourse = course
+                                                detailSessions = emptyList()
+                                                loadingDetailSessions = true
+                                                detailOrigin = NavRoutes.Courses
+                                                currentRoute = NavRoutes.CourseDetail
+                                                scope.launch {
+                                                    detailSessions = courseRepository.getRecentCourseSessions(
+                                                        course.id,
+                                                        currentUser?.uid ?: ""
+                                                    )
+                                                    loadingDetailSessions = false
+                                                }
+                                            }
                                         )
                                         NavRoutes.Reports -> ReportsScreen()
                                         NavRoutes.Profile -> ProfileScreen(

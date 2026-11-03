@@ -53,7 +53,8 @@ fun StudentHomeScreen(
     courses: List<Course> = emptyList(),
     currentRoute: NavRoutes = NavRoutes.StudentHome,
     onNavigateToRoute: (NavRoutes) -> Unit = {},
-    onEnrollStudent: (String) -> Unit = {}
+    onEnrollStudent: (String) -> Unit = {},
+    onCourseClick: (Course) -> Unit = {}
 ) {
     var showEnrollDialog by remember { mutableStateOf(false) }
 
@@ -208,7 +209,8 @@ fun StudentHomeScreen(
                         name = course.name,
                         teacher = course.teacherName.ifEmpty { "Por asignar" },
                         // -1 = aún no hay sesiones cerradas en el curso.
-                        attendanceRate = if (course.attendanceRate < 0) "Sin datos" else "${course.attendanceRate}%"
+                        attendanceRate = if (course.attendanceRate < 0) "Sin datos" else "${course.attendanceRate}%",
+                        onClick = { onCourseClick(course) }
                     )
                     Spacer(modifier = Modifier.height(10.dp))
                 }
@@ -231,12 +233,14 @@ fun StudentCourseCard(
     code: String,
     name: String,
     teacher: String,
-    attendanceRate: String
+    attendanceRate: String,
+    onClick: () -> Unit = {}
 ) {
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = AppTheme.colors.surfaceContainerLowest,
         shadowElevation = 1.dp,
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(

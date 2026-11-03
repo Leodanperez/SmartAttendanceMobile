@@ -3,6 +3,7 @@ package dev.leo.smartattendance.domain.repository
 import dev.leo.smartattendance.domain.model.ActiveSession
 import dev.leo.smartattendance.domain.model.Attendance
 import dev.leo.smartattendance.domain.model.Course
+import dev.leo.smartattendance.domain.model.CourseSessionSummary
 import dev.leo.smartattendance.domain.model.RecentActivity
 import dev.leo.smartattendance.domain.model.Session
 import kotlinx.coroutines.flow.Flow
@@ -22,4 +23,7 @@ interface CourseRepository {
     suspend fun getActiveSession(): ActiveSession?
     suspend fun getAssignedCourses(): List<Course>
     suspend fun getRecentActivities(): List<RecentActivity>
+
+    /** Sesiones recientes de un curso con el estado del registro del estudiante. */
+    suspend fun getRecentCourseSessions(courseId: String, studentId: String): List<CourseSessionSummary>
 }

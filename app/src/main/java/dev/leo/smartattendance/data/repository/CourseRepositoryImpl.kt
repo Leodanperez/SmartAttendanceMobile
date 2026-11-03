@@ -6,6 +6,7 @@ import dev.leo.smartattendance.data.mapper.toDto
 import dev.leo.smartattendance.domain.model.ActiveSession
 import dev.leo.smartattendance.domain.model.Attendance
 import dev.leo.smartattendance.domain.model.Course
+import dev.leo.smartattendance.domain.model.CourseSessionSummary
 import dev.leo.smartattendance.domain.model.RecentActivity
 import dev.leo.smartattendance.domain.model.Session
 import dev.leo.smartattendance.domain.repository.CourseRepository
@@ -79,5 +80,17 @@ class CourseRepositoryImpl(
 
     override suspend fun getRecentActivities(): List<RecentActivity> {
         return emptyList()
+    }
+
+    override suspend fun getRecentCourseSessions(courseId: String, studentId: String): List<CourseSessionSummary> {
+        return firestoreDataSource.getRecentCourseSessions(courseId, studentId).map { row ->
+            CourseSessionSummary(
+                id = row.id,
+                title = row.title,
+                status = row.status,
+                startsAtMillis = row.startsAtMillis,
+                myStatus = row.myStatus
+            )
+        }
     }
 }

@@ -10,7 +10,14 @@ data class CourseDto(
     val teacherName: String = "",
     val status: String = "ACTIVE",
     val studentCount: Int = 0,
-    val schedule: String = "",
+    val careerName: String = "",
+    val semester: Int = 0,
+    val academicPeriodName: String = "",
+    /**
+     * Horario semanal: lista de bloques { day, start, end } (igual que el panel web).
+     * Firestore lo entrega como List<Map<String, Any?>>.
+     */
+    val schedule: List<Map<String, @JvmSuppressWildcards Any?>> = emptyList(),
     // No se guarda en Firestore: lo calcula el DataSource para el estudiante en sesión.
     // -1 = aún no hay sesiones cerradas (sin datos).
     @get:com.google.firebase.firestore.Exclude

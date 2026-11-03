@@ -21,11 +21,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.leo.smartattendance.domain.model.Course
+import dev.leo.smartattendance.domain.model.scheduleSummary
 import dev.leo.smartattendance.feature.teacherhome.CourseCardItem
 
 @Composable
 fun CoursesScreen(
-    courses: List<Course> = emptyList()
+    courses: List<Course> = emptyList(),
+    onCourseClick: (Course) -> Unit = {}
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -83,7 +85,8 @@ fun CoursesScreen(
                     sectionInfo = course.section.ifEmpty { "Lab 4 • 28 alumnos" },
                     courseTitle = course.name,
                     attendancePercentage = "${course.attendanceRate.takeIf { it > 0 } ?: 92}% Asist.",
-                    schedule = course.schedule.ifEmpty { "Lun / Mié 08:00 - 10:00" }
+                    schedule = course.schedule.scheduleSummary(),
+                    onDetailClick = { onCourseClick(course) }
                 )
                 Spacer(modifier = Modifier.height(12.dp))
             }
