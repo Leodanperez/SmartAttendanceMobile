@@ -37,6 +37,12 @@ class CourseRepositoryImpl(
         }
     }
 
+    override fun getActiveSessionsForCoursesFlow(courseIds: List<String>): Flow<List<Session>> {
+        return firestoreDataSource.getActiveSessionsForCoursesFlow(courseIds).map { dtos ->
+            dtos.map { it.toDomain(it.id) }
+        }
+    }
+
     override fun getLiveAttendancesFlow(sessionId: String): Flow<List<Attendance>> {
         return firestoreDataSource.getLiveAttendancesFlow(sessionId).map { dtos ->
             dtos.map { it.toDomain(it.id) }
@@ -122,7 +128,8 @@ class CourseRepositoryImpl(
             courseName = courseName,
             title = title,
             token = created.token,
-            tokenExpiresAtMillis = created.tokenExpiresAtMillis
+            tokenExpiresAtMillis = created.tokenExpiresAtMillis,
+            startsAtMillis = created.startsAtMillis
         )
     }
 

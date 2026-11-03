@@ -24,12 +24,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.leo.smartattendance.ui.theme.AppTheme
 import kotlinx.coroutines.delay
 
 @Composable
 fun SplashScreen(
     onNavigateNext: () -> Unit
 ) {
+    val colors = AppTheme.colors
+
     LaunchedEffect(Unit) {
         delay(1200)
         onNavigateNext()
@@ -38,7 +41,7 @@ fun SplashScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .background(colors.background),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -50,10 +53,7 @@ fun SplashScreen(
                     .clip(RoundedCornerShape(24.dp))
                     .background(
                         brush = Brush.linearGradient(
-                            listOf(
-                                dev.leo.smartattendance.ui.theme.Primary,
-                                dev.leo.smartattendance.ui.theme.PrimaryContainer
-                            )
+                            listOf(colors.primary, colors.primaryContainer)
                         )
                     ),
                 contentAlignment = Alignment.Center
@@ -74,19 +74,19 @@ fun SplashScreen(
                     fontWeight = FontWeight.Bold,
                     letterSpacing = (-0.5).sp
                 ),
-                color = dev.leo.smartattendance.ui.theme.OnSurface
+                color = colors.onSurface
             )
 
             Text(
                 text = "Sistema Institucional de Asistencia",
                 style = MaterialTheme.typography.bodyMedium,
-                color = dev.leo.smartattendance.ui.theme.OnSurfaceVariant
+                color = colors.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(32.dp))
 
             CircularProgressIndicator(
-                color = dev.leo.smartattendance.ui.theme.Primary,
+                color = colors.primary,
                 strokeWidth = 3.dp,
                 modifier = Modifier.size(28.dp)
             )

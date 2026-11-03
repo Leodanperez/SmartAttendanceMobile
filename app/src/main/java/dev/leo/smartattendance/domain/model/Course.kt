@@ -42,6 +42,7 @@ data class Course(
     val name: String = "",
     val description: String = "",
     val section: String = "A",
+    val room: String = "",
     val teacherIds: List<String> = emptyList(),
     val teacherName: String = "",
     val studentCount: Int = 0,

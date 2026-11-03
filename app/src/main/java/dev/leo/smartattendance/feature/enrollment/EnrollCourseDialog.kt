@@ -51,7 +51,7 @@ fun EnrollCourseDialog(
         text = {
             Column {
                 Text(
-                    text = "Ingresa el código proporcionado por tu docente",
+                    text = "Ingresa el código de inscripción que te dio tu docente (8 caracteres).",
                     style = MaterialTheme.typography.bodySmall,
                     color = AppTheme.colors.onSurface
                 )
@@ -59,7 +59,7 @@ fun EnrollCourseDialog(
                 OutlinedTextField(
                     value = code,
                     onValueChange = { code = it.uppercase() },
-                    placeholder = { Text("Ejemplo: DS-2026") },
+                    placeholder = { Text("Ejemplo: K7M4PQ2R") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp)
@@ -70,8 +70,7 @@ fun EnrollCourseDialog(
             Button(
                 onClick = {
                     if (code.isNotBlank()) {
-                        Toast.makeText(context, "Inscrito en el curso $code", Toast.LENGTH_SHORT).show()
-                        onEnrollSuccess(code)
+                        onEnrollSuccess(code.trim())
                         onDismiss()
                     } else {
                         Toast.makeText(context, "Ingresa un código válido", Toast.LENGTH_SHORT).show()

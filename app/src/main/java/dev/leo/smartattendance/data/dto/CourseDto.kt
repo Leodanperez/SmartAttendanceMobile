@@ -6,6 +6,7 @@ data class CourseDto(
     val description: String = "",
     val courseCode: String = "",
     val section: String = "A",
+    val room: String = "",
     val teacherIds: List<String> = emptyList(),
     val teacherName: String = "",
     val status: String = "ACTIVE",

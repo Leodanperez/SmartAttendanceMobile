@@ -10,7 +10,9 @@ data class QrSession(
     val courseName: String,
     val title: String,
     val token: String,
-    val tokenExpiresAtMillis: Long
+    val tokenExpiresAtMillis: Long,
+    /** Inicio de la ventana de asistencia (epoch ms). Antes de esta hora el alumno no puede registrar. */
+    val startsAtMillis: Long = 0L
 )
 
 /** Actividad reciente del docente (sesión + resumen de asistencia). */

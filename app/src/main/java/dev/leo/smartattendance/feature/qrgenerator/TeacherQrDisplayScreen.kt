@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.QrCode
 import androidx.compose.material.icons.outlined.Refresh
@@ -81,6 +82,7 @@ fun TeacherQrDisplayScreen(
     session: QrSession,
     enrolledCount: Int = 0,
     courseRepository: CourseRepository? = null,
+    onBackToHome: () -> Unit = {},
     onCloseSession: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -145,6 +147,59 @@ fun TeacherQrDisplayScreen(
                 .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Volver al inicio SIN cerrar la sesión: el QR sigue activo y se puede reabrir luego.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedButton(
+                    onClick = onBackToHome,
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                        contentDescription = "Volver al inicio",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Volver al inicio", fontSize = 13.sp)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Aún no inicia la ventana de asistencia: avisar al docente (el alumno no podrá registrar todavía).
+            val notStarted = currentSession.startsAtMillis > 0 &&
+                System.currentTimeMillis() < currentSession.startsAtMillis
+            if (notStarted) {
+                val startHhmm = remember(currentSession.startsAtMillis) {
+                    java.text.SimpleDateFormat("dd/MM HH:mm", java.util.Locale.forLanguageTag("es"))
+                        .format(java.util.Date(currentSession.startsAtMillis))
+                }
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = AppTheme.colors.warningBg,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "La sesión inicia el $startHhmm. Los estudiantes podrán registrar asistencia a partir de esa hora.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AppTheme.colors.warningText,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            Text(
+                text = "La sesión sigue activa. Puedes navegar y volver a abrir el QR desde Inicio.",
+                style = MaterialTheme.typography.bodySmall,
+                color = AppTheme.colors.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
             Card(
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainerLowest),

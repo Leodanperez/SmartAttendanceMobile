@@ -153,6 +153,14 @@ class MainActivity : ComponentActivity() {
                     val teacherCourses = courseRepository.getTeacherCoursesFlow(currentUser?.uid ?: "").collectAsState(initial = emptyList()).value
                     val studentCourses = courseRepository.getStudentCoursesFlow(currentUser?.uid ?: "").collectAsState(initial = emptyList()).value
 
+                    // Sesiones activas y vigentes en los cursos del estudiante (aviso en su Home).
+                    val studentCourseIds = studentCourses.map { it.id }
+                    val activeSessionsFlow = remember(studentCourseIds) {
+                        courseRepository.getActiveSessionsForCoursesFlow(studentCourseIds)
+                    }
+                    val studentActiveSessions = activeSessionsFlow
+                        .collectAsState(initial = emptyList()).value
+
                     // Sesión activa real del docente y su asistencia en vivo.
                     val teacherActiveSession = courseRepository
                         .getActiveSessionFlow(currentUser?.uid ?: "")
@@ -255,7 +263,8 @@ class MainActivity : ComponentActivity() {
                                                 title = active.title,
                                                 token = rotated?.token ?: "",
                                                 tokenExpiresAtMillis = rotated?.tokenExpiresAtMillis
-                                                    ?: (System.currentTimeMillis() + 60_000)
+                                                    ?: (System.currentTimeMillis() + 60_000),
+                                                startsAtMillis = active.startTime
                                             )
                                             creatingSession = false
                                             currentRoute = NavRoutes.Sessions
@@ -274,11 +283,17 @@ class MainActivity : ComponentActivity() {
                             StudentHomeScreen(
                                 studentName = currentUser?.fullName?.ifEmpty { "Ana López" } ?: "Ana López",
                                 courses = studentCourses,
+                                activeSessions = studentActiveSessions,
                                 currentRoute = currentRoute,
                                 onNavigateToRoute = { route -> currentRoute = route },
                                 onEnrollStudent = { code ->
                                     scope.launch {
-                                        courseRepository.enrollStudentByCode(code, currentUser?.uid ?: "")
+                                        val result = courseRepository.enrollStudentByCode(code, currentUser?.uid ?: "")
+                                        val msg = if (result.isSuccess) "Te inscribiste correctamente."
+                                            else result.exceptionOrNull()?.message ?: "No se pudo inscribir."
+                                        android.widget.Toast.makeText(
+                                            this@MainActivity, msg, android.widget.Toast.LENGTH_LONG
+                                        ).show()
                                     }
                                 },
                                 onCourseClick = { course ->
@@ -323,6 +338,10 @@ class MainActivity : ComponentActivity() {
                                         session = qr,
                                         enrolledCount = teacherQrEnrolled,
                                         courseRepository = courseRepository,
+                                        onBackToHome = {
+                                            // No cierra la sesión: el QR sigue activo y se reabre desde Inicio.
+                                            currentRoute = NavRoutes.TeacherHome
+                                        },
                                         onCloseSession = {
                                             teacherQrSession = null
                                             currentRoute = NavRoutes.TeacherHome

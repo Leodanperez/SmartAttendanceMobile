@@ -131,6 +131,7 @@ fun CourseDetailScreen(
                             if (course.semester > 0) Chip("${course.semester}º ciclo")
                             if (course.academicPeriodName.isNotBlank()) Chip("Periodo ${course.academicPeriodName}")
                             Chip("Sección ${course.section.ifBlank { "—" }}")
+                            if (course.room.isNotBlank()) Chip("Aula ${course.room}")
                             if (course.teacherName.isNotBlank()) Chip("Docente: ${course.teacherName}")
                         }
                     }

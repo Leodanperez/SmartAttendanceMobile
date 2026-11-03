@@ -3,7 +3,6 @@ package dev.leo.smartattendance.data.datasource.firestore
 import com.google.firebase.firestore.FirebaseFirestore
 import dev.leo.smartattendance.data.dto.AttendanceDto
 import dev.leo.smartattendance.data.dto.CourseDto
-import dev.leo.smartattendance.data.dto.EnrollmentDto
 import dev.leo.smartattendance.data.dto.SessionDto
 import dev.leo.smartattendance.data.dto.UserDto
 import kotlinx.coroutines.channels.awaitClose
@@ -30,7 +29,8 @@ data class CreatedSession(
     val sessionId: String,
     val courseId: String,
     val token: String,
-    val tokenExpiresAtMillis: Long
+    val tokenExpiresAtMillis: Long,
+    val startsAtMillis: Long
 )
 
 /** Resultado de renovar el token del QR. */
@@ -52,26 +52,6 @@ data class TeacherActivityRow(
 )
 
 class FirebaseFirestoreDataSource(private val db: FirebaseFirestore) {
-
-    // Cache de nombres de docente por uid (evita releer users en cada snapshot).
-    private val teacherNameCache = mutableMapOf<String, String>()
-
-    /** Nombre del docente desde users/{uid}. Vacío si no se puede leer. */
-    private suspend fun resolveTeacherName(teacherId: String): String {
-        teacherNameCache[teacherId]?.let { return it }
-        return try {
-            val user = db.collection("users").document(teacherId).get().await()
-            val first = user.getString("firstName") ?: ""
-            val last = user.getString("lastName") ?: ""
-            val name = "$first $last".trim().ifBlank {
-                user.getString("displayName") ?: user.getString("name") ?: ""
-            }
-            if (name.isNotBlank()) teacherNameCache[teacherId] = name
-            name
-        } catch (e: Exception) {
-            ""
-        }
-    }
 
     /**
      * Porcentaje de asistencia del estudiante en un curso (misma regla que el panel web):
@@ -241,17 +221,12 @@ class FirebaseFirestoreDataSource(private val db: FirebaseFirestore) {
                                 } else null
                             } ?: emptyList()
 
-                            // Se enriquece cada curso: nombre del docente (users/{uid}) y
-                            // porcentaje de asistencia real del estudiante.
+                            // El nombre del docente viene denormalizado en el curso (teacherName);
+                            // el estudiante NO lee users/{uid} (las reglas ya no lo permiten).
+                            // Solo se calcula el % de asistencia real del estudiante.
                             launch {
                                 val resolved = enrolledCourses.map { c ->
-                                    val teacher = if (c.teacherName.isBlank() && c.teacherIds.isNotEmpty()) {
-                                        resolveTeacherName(c.teacherIds.first())
-                                    } else c.teacherName
-                                    c.copy(
-                                        teacherName = teacher,
-                                        attendanceRate = computeAttendanceRate(c.id, studentId)
-                                    )
+                                    c.copy(attendanceRate = computeAttendanceRate(c.id, studentId))
                                 }
                                 trySend(resolved)
                             }
@@ -287,7 +262,8 @@ class FirebaseFirestoreDataSource(private val db: FirebaseFirestore) {
                         name = "Algoritmos y Estructuras de Datos",
                         description = "Curso de estructuras de datos complejas",
                         courseCode = "CS201",
-                        section = "Lab 4",
+                        section = "A",
+                        room = "Lab 4",
                         teacherIds = listOf(teacherId),
                         teacherName = "Prof. Morales",
                         studentCount = 28,
@@ -304,7 +280,8 @@ class FirebaseFirestoreDataSource(private val db: FirebaseFirestore) {
                         name = "Bases de Datos Avanzadas",
                         description = "Modelado relacional y NoSQL",
                         courseCode = "CS304",
-                        section = "Aula 102",
+                        section = "A",
+                        room = "Aula 102",
                         teacherIds = listOf(teacherId),
                         teacherName = "Prof. Morales",
                         studentCount = 32,
@@ -321,7 +298,8 @@ class FirebaseFirestoreDataSource(private val db: FirebaseFirestore) {
                         name = "Inteligencia Artificial",
                         description = "Redes neuronales y machine learning",
                         courseCode = "CS402",
-                        section = "Pab. Robótica",
+                        section = "A",
+                        room = "Pab. Robótica",
                         teacherIds = listOf(teacherId),
                         teacherName = "Prof. Morales",
                         studentCount = 22,
@@ -343,29 +321,66 @@ class FirebaseFirestoreDataSource(private val db: FirebaseFirestore) {
     }
 
     // --- ENROLLMENT OPERATIONS ---
+    /**
+     * Autoinscripción del estudiante con un CÓDIGO DE INSCRIPCIÓN (modo demo, sin Cloud Functions).
+     * El código lo genera el ADMIN en el panel; solo se guarda su hash SHA-256 en enrollmentCodes.
+     * Aquí se busca por hash, se valida (ACTIVE, vigente, con cupo), se crea la inscripción con
+     * source=CODE y codeId, y se incrementa 'uses' del código. Las reglas validan todo.
+     */
     suspend fun enrollStudentByCode(code: String, studentId: String): Result<Boolean> {
         return try {
-            val query = db.collection("courses")
-                .whereEqualTo("courseCode", code)
+            if (studentId.isBlank()) {
+                return Result.failure(Exception("Tu sesión expiró. Vuelve a iniciar sesión."))
+            }
+            val codeHash = sha256Hex(code.trim().uppercase())
+            val codeQuery = db.collection("enrollmentCodes")
+                .whereEqualTo("codeHash", codeHash)
+                .whereEqualTo("status", "ACTIVE")
+                .limit(1)
                 .get()
                 .await()
+            val codeDoc = codeQuery.documents.firstOrNull()
+                ?: return Result.failure(Exception("El código no es válido o fue deshabilitado."))
 
-            if (query.isEmpty) {
-                return Result.failure(Exception("No se encontró ningún curso con el código $code"))
+            // Validaciones locales (mensajes claros); las reglas las re-verifican al escribir.
+            val expiresAt = when (val raw = codeDoc.get("expiresAt")) {
+                is com.google.firebase.Timestamp -> raw.toDate().time
+                is Number -> raw.toLong()
+                else -> 0L
+            }
+            if (expiresAt in 1 until System.currentTimeMillis()) {
+                return Result.failure(Exception("El código ya expiró."))
+            }
+            val uses = (codeDoc.getLong("uses") ?: 0L)
+            val maxUses = (codeDoc.getLong("maxUses") ?: 0L)
+            if (maxUses in 1..uses) {
+                return Result.failure(Exception("El código alcanzó su número máximo de usos."))
+            }
+            val courseId = codeDoc.getString("courseId")
+                ?: return Result.failure(Exception("El código no está asociado a un curso."))
+
+            val enrollmentId = "${courseId}_$studentId"
+            val enrollmentRef = db.collection("enrollments").document(enrollmentId)
+            if (enrollmentRef.get().await().exists()) {
+                return Result.failure(Exception("Ya estás inscrito en este curso."))
             }
 
-            val courseDoc = query.documents.first()
-            val courseId = courseDoc.id
-            val enrollmentId = "${courseId}_$studentId"
-
-            val enrollmentDto = EnrollmentDto(
-                id = enrollmentId,
-                courseId = courseId,
-                studentId = studentId,
-                status = "ACTIVE"
+            val enrollmentData = hashMapOf(
+                "id" to enrollmentId,
+                "courseId" to courseId,
+                "studentId" to studentId,
+                "status" to "ACTIVE",
+                "source" to "CODE",
+                "codeId" to codeDoc.id,
+                "enrolledBy" to studentId,
+                "enrolledAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
             )
 
-            db.collection("enrollments").document(enrollmentId).set(enrollmentDto).await()
+            // Inscripción + incremento de 'uses' en un batch atómico.
+            val batch = db.batch()
+            batch.set(enrollmentRef, enrollmentData)
+            batch.update(codeDoc.reference, "uses", uses + 1)
+            batch.commit().await()
             Result.success(true)
         } catch (e: Exception) {
             Result.failure(e)
@@ -378,6 +393,52 @@ class FirebaseFirestoreDataSource(private val db: FirebaseFirestore) {
         is com.google.firebase.Timestamp -> raw.toDate().time
         is Number -> raw.toLong()
         else -> 0L
+    }
+
+    /**
+     * Sesiones ACTIVE que pertenecen a alguno de los cursos del estudiante y cuya ventana de
+     * asistencia está vigente (startsAt <= ahora <= expiresAt). Se usa para avisar al alumno
+     * en su Home que el docente inició una sesión y puede escanear el QR.
+     */
+    fun getActiveSessionsForCoursesFlow(courseIds: List<String>): Flow<List<SessionDto>> = callbackFlow {
+        if (courseIds.isEmpty()) {
+            trySend(emptyList())
+            awaitClose { }
+            return@callbackFlow
+        }
+        val idSet = courseIds.toSet()
+        val listener = db.collection("sessions")
+            .whereEqualTo("status", "ACTIVE")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+                val now = System.currentTimeMillis()
+                val list = snapshot?.documents.orEmpty().mapNotNull { doc ->
+                    val courseId = doc.getString("courseId") ?: return@mapNotNull null
+                    if (courseId !in idSet) return@mapNotNull null
+                    val startsAt = readMillis(doc.get("startsAt"))
+                    val expiresAt = readMillis(doc.get("expiresAt"))
+                    // Solo sesiones cuya ventana está vigente ahora mismo.
+                    if (startsAt in 1..now && (expiresAt == 0L || expiresAt >= now)) {
+                        SessionDto(
+                            id = doc.id,
+                            courseId = courseId,
+                            courseName = doc.getString("courseName") ?: "",
+                            title = doc.getString("title") ?: "",
+                            room = doc.getString("room") ?: "",
+                            teacherId = doc.getString("teacherId") ?: "",
+                            status = "ACTIVE",
+                            token = "",
+                            startsAt = startsAt,
+                            expiresAt = expiresAt
+                        )
+                    } else null
+                }
+                trySend(list)
+            }
+        awaitClose { listener.remove() }
     }
 
     fun getActiveSessionFlow(teacherId: String): Flow<SessionDto?> = callbackFlow {
@@ -485,7 +546,13 @@ class FirebaseFirestoreDataSource(private val db: FirebaseFirestore) {
 
             val token = generateToken()
             val tokenExpiresAt = writeToken(sessionId, courseId, token, qrSeconds, teacherId)
-            CreatedSession(sessionId = sessionId, courseId = courseId, token = token, tokenExpiresAtMillis = tokenExpiresAt)
+            CreatedSession(
+                sessionId = sessionId,
+                courseId = courseId,
+                token = token,
+                tokenExpiresAtMillis = tokenExpiresAt,
+                startsAtMillis = start
+            )
         } catch (e: Exception) {
             e.printStackTrace()
             null
@@ -658,6 +725,29 @@ class FirebaseFirestoreDataSource(private val db: FirebaseFirestore) {
                 return Result.failure(AlreadyRegisteredException())
             }
 
+            // Validar la ventana de la sesión para dar mensajes claros (las reglas lo re-verifican).
+            val sessionDoc = db.collection("sessions").document(attendanceDto.sessionId).get().await()
+            if (!sessionDoc.exists()) {
+                return Result.failure(Exception("La sesión no existe."))
+            }
+            val sessionStatus = sessionDoc.getString("status")?.uppercase() ?: "ACTIVE"
+            val startsAt = readMillis(sessionDoc.get("startsAt"))
+            val expiresAt = readMillis(sessionDoc.get("expiresAt"))
+            val lateAfter = readMillis(sessionDoc.get("lateAfter"))
+            val now = System.currentTimeMillis()
+
+            if (sessionStatus == "CLOSED") {
+                return Result.failure(Exception("La sesión ya fue cerrada por el docente."))
+            }
+            if (startsAt > 0 && now < startsAt) {
+                val hhmm = java.text.SimpleDateFormat("HH:mm", java.util.Locale.forLanguageTag("es"))
+                    .format(java.util.Date(startsAt))
+                return Result.failure(Exception("La sesión aún no ha iniciado. Empieza a las $hhmm."))
+            }
+            if (expiresAt > 0 && now > expiresAt) {
+                return Result.failure(Exception("La ventana de asistencia de esta sesión ya terminó."))
+            }
+
             // Buscar el token vigente por su hash (mismo SHA-256 que usa el panel web).
             val tokenHash = sha256Hex(rawToken.trim())
             val tokenQuery = db.collection("sessionTokens")
@@ -668,7 +758,10 @@ class FirebaseFirestoreDataSource(private val db: FirebaseFirestore) {
                 .get()
                 .await()
             val tokenDoc = tokenQuery.documents.firstOrNull()
-                ?: return Result.failure(Exception("El código QR no es válido o expiró"))
+                ?: return Result.failure(Exception("El código QR no es válido o expiró. Pide al docente que lo renueve."))
+
+            // PRESENT por defecto; LATE si ya pasó el umbral de tardanza (lateAfter).
+            val status = if (lateAfter > 0 && now > lateAfter) "LATE" else "PRESENT"
 
             val data = hashMapOf(
                 "id" to attendanceId,
@@ -677,7 +770,7 @@ class FirebaseFirestoreDataSource(private val db: FirebaseFirestore) {
                 "studentId" to attendanceDto.studentId,
                 "studentName" to attendanceDto.studentName,
                 "studentCode" to attendanceDto.studentCode,
-                "status" to attendanceDto.status,
+                "status" to status,
                 "source" to "QR",
                 "tokenId" to tokenDoc.id,
                 "registeredAt" to com.google.firebase.firestore.FieldValue.serverTimestamp(),

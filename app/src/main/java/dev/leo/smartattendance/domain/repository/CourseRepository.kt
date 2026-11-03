@@ -14,6 +14,8 @@ interface CourseRepository {
     fun getTeacherCoursesFlow(teacherId: String): Flow<List<Course>>
     fun getStudentCoursesFlow(studentId: String): Flow<List<Course>>
     fun getActiveSessionFlow(teacherId: String): Flow<Session?>
+    /** Sesiones activas y vigentes de los cursos del estudiante (para avisarle en su Home). */
+    fun getActiveSessionsForCoursesFlow(courseIds: List<String>): Flow<List<Session>>
     fun getLiveAttendancesFlow(sessionId: String): Flow<List<Attendance>>
     suspend fun createSession(session: Session): String
     suspend fun closeSession(sessionId: String)
