@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <!-- Tema principal de la app. -->
     <style name="Theme.SmartAttendanceMobile" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- Tema del splash del sistema (Android 12+) usando androidx.core.splashscreen.
+         Fondo azul de marca + ícono de escudo blanco, para no mostrar el ícono por defecto de Android.
+         Al terminar, entra al tema principal y se ve el SplashScreen.kt de Compose. -->
+    <style name="Theme.SmartAttendanceMobile.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo</item>
+        <item name="postSplashScreenTheme">@style/Theme.SmartAttendanceMobile</item>
+    </style>
 </resources>

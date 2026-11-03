@@ -75,6 +75,8 @@ dependencies {
     // Imágenes
     implementation(libs.coil.compose)
 
+    implementation(libs.androidx.core.splashscreen)
+
     // Credentials & Google Auth
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)

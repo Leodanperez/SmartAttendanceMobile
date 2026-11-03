@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Escudo blanco para el splash del sistema (coincide con el logo de SplashScreen.kt). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M54,24 L78,34 L78,52 C78,68 68,80 54,86 C40,80 30,68 30,52 L30,34 Z M54,32 L38,39 L38,52 C38,64 45,73 54,78 C63,73 70,64 70,52 L70,39 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M49,55 L45,51 L42,54 L49,61 L66,44 L63,41 Z" />
+</vector>

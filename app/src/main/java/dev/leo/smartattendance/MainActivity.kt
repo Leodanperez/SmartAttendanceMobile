@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -30,7 +31,6 @@ import dev.leo.smartattendance.domain.model.User
 import dev.leo.smartattendance.domain.model.UserRole
 import dev.leo.smartattendance.feature.auth.LoginScreen
 import dev.leo.smartattendance.feature.auth.SignUpScreen
-import dev.leo.smartattendance.feature.auth.SplashScreen
 import dev.leo.smartattendance.domain.model.Course
 import dev.leo.smartattendance.domain.model.CourseSessionSummary
 import dev.leo.smartattendance.domain.model.QrSession
@@ -55,6 +55,9 @@ class MainActivity : ComponentActivity() {
     private lateinit var db: FirebaseFirestore
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Único splash: el del sistema (Android 12+) con nuestro tema (fondo de marca + escudo).
+        // Al terminar entra directo al login/home, sin un segundo splash de Compose.
+        installSplashScreen()
         super.onCreate(savedInstanceState)
 
         auth = FirebaseAuth.getInstance()
@@ -69,7 +72,6 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             SmartAttendanceMobileTheme(mode = themeController.mode) {
-                var isShowingSplash by remember { mutableStateOf(true) }
                 var currentUser by remember { mutableStateOf<User?>(null) }
                 val scope = rememberCoroutineScope()
 
@@ -142,13 +144,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                if (isShowingSplash) {
-                    SplashScreen(
-                        onNavigateNext = {
-                            isShowingSplash = false
-                        }
-                    )
-                } else {
+                run {
                     val effectiveRole = currentUser?.role ?: UserRole.STUDENT
                     val teacherCourses = courseRepository.getTeacherCoursesFlow(currentUser?.uid ?: "").collectAsState(initial = emptyList()).value
                     val studentCourses = courseRepository.getStudentCoursesFlow(currentUser?.uid ?: "").collectAsState(initial = emptyList()).value
