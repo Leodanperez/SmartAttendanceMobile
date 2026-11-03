@@ -15,12 +15,13 @@ fun AttendanceDto.toDomain(documentId: String = ""): Attendance {
         id = id.ifEmpty { documentId },
         sessionId = sessionId,
         courseId = courseId,
-        courseName = courseName,
+        courseName = "",
         studentId = studentId,
         studentName = studentName,
-        institutionalCode = institutionalCode,
+        institutionalCode = studentCode ?: "",
         status = parsedStatus,
-        registeredAt = registeredAt,
+        // El Timestamp del servidor a millis para la UI de historial/reportes.
+        registeredAt = registeredAt?.toDate()?.time ?: 0L,
         source = source
     )
 }
@@ -30,12 +31,12 @@ fun Attendance.toDto(): AttendanceDto {
         id = id,
         sessionId = sessionId,
         courseId = courseId,
-        courseName = courseName,
         studentId = studentId,
         studentName = studentName,
-        institutionalCode = institutionalCode,
+        studentCode = institutionalCode.ifEmpty { null },
         status = status.name,
-        registeredAt = registeredAt,
-        source = source
+        source = source,
+        // registeredAt lo pone el DataSource con serverTimestamp(); tokenId se pasa aparte.
+        registeredAt = null
     )
 }

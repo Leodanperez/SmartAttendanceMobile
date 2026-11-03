@@ -48,8 +48,8 @@ class CourseRepositoryImpl(
         firestoreDataSource.closeSession(sessionId)
     }
 
-    override suspend fun registerAttendance(attendance: Attendance): Result<Boolean> {
-        return firestoreDataSource.registerAttendance(attendance.toDto())
+    override suspend fun registerAttendance(attendance: Attendance, rawToken: String): Result<Boolean> {
+        return firestoreDataSource.registerAttendance(attendance.toDto(), rawToken)
     }
 
     override suspend fun enrollStudentByCode(code: String, studentId: String): Result<Boolean> {

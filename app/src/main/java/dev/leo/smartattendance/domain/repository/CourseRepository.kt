@@ -14,7 +14,8 @@ interface CourseRepository {
     fun getLiveAttendancesFlow(sessionId: String): Flow<List<Attendance>>
     suspend fun createSession(session: Session): String
     suspend fun closeSession(sessionId: String)
-    suspend fun registerAttendance(attendance: Attendance): Result<Boolean>
+    /** @param rawToken token en claro leído del QR, para validarlo contra sessionTokens. */
+    suspend fun registerAttendance(attendance: Attendance, rawToken: String): Result<Boolean>
     suspend fun enrollStudentByCode(code: String, studentId: String): Result<Boolean>
     suspend fun seedInitialCoursesIfEmpty(teacherId: String)
 

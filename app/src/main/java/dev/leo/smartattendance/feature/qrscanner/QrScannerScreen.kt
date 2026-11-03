@@ -111,6 +111,10 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.Executors
 
+// Los diálogos de resultado siempre en modo claro (independiente del tema del dispositivo).
+private val DialogSurface = Color.White
+private val DialogOnSurface = Color(0xFF0F172A)
+
 data class QrPayload(
     val sessionId: String,
     val courseId: String,
@@ -119,53 +123,68 @@ data class QrPayload(
     val rawToken: String
 )
 
-fun parseQrPayload(raw: String, fallbackCourseName: String): QrPayload {
+/**
+ * Formato del QR (contrato compartido con el panel web):
+ *   JSON { "v": 1, "sessionId": "...", "courseId": "...", "token": "..." }
+ *
+ * Se aceptan también formatos antiguos (pipe "SA1|sessionId|token" y texto plano) por compatibilidad.
+ * Devuelve null si el QR no tiene sessionId ni courseId (QR ajeno o inválido).
+ */
+fun parseQrPayload(raw: String, fallbackCourseName: String): QrPayload? {
     val clean = raw.trim()
+    if (clean.isBlank()) return null
     return try {
-        if (clean.startsWith("{") && clean.endsWith("}")) {
-            val json = JSONObject(clean)
-            QrPayload(
-                sessionId = json.optString("sessionId", json.optString("id", "session_01")),
-                courseId = json.optString("courseId", "course_01"),
-                courseName = json.optString("courseName", json.optString("course", fallbackCourseName)),
-                title = json.optString("title", json.optString("sessionTitle", "Sesión de Asistencia")),
-                rawToken = json.optString("token", clean)
-            )
-        } else if (clean.contains("?")) {
-            val uri = Uri.parse(clean)
-            QrPayload(
-                sessionId = uri.getQueryParameter("sessionId") ?: uri.getQueryParameter("id") ?: "session_01",
-                courseId = uri.getQueryParameter("courseId") ?: "course_01",
-                courseName = uri.getQueryParameter("courseName") ?: uri.getQueryParameter("course") ?: fallbackCourseName,
-                title = uri.getQueryParameter("title") ?: "Sesión de Asistencia",
-                rawToken = clean
-            )
-        } else {
-            QrPayload(
-                sessionId = if (clean.isNotBlank()) clean else "session_01",
-                courseId = "course_01",
-                courseName = fallbackCourseName,
-                title = "Sesión de Asistencia",
-                rawToken = clean
-            )
+        when {
+            clean.startsWith("{") && clean.endsWith("}") -> {
+                val json = JSONObject(clean)
+                val sessionId = json.optString("sessionId", json.optString("id", ""))
+                val courseId = json.optString("courseId", "")
+                if (sessionId.isBlank() || courseId.isBlank()) return null
+                QrPayload(
+                    sessionId = sessionId,
+                    courseId = courseId,
+                    courseName = json.optString("courseName", fallbackCourseName),
+                    title = json.optString("title", "Sesión de asistencia"),
+                    rawToken = json.optString("token", "")
+                )
+            }
+            // Formato antiguo: SA1|sessionId|token  (courseId no venía, no se puede usar)
+            clean.startsWith("SA1|") -> {
+                val parts = clean.split("|")
+                if (parts.size < 3) return null
+                QrPayload(
+                    sessionId = parts[1],
+                    courseId = "",
+                    courseName = fallbackCourseName,
+                    title = "Sesión de asistencia",
+                    rawToken = parts[2]
+                )
+            }
+            else -> null
         }
     } catch (e: Exception) {
-        QrPayload(
-            sessionId = "session_01",
-            courseId = "course_01",
-            courseName = fallbackCourseName,
-            title = "Sesión de Asistencia",
-            rawToken = clean
-        )
+        null
     }
+}
+
+/** Estado del registro de asistencia, para mostrar el resultado real (no solo leer el QR). */
+sealed interface AttendanceUiState {
+    data object Idle : AttendanceUiState
+    data object Loading : AttendanceUiState
+    data class Success(val payload: QrPayload) : AttendanceUiState
+    /** Ya tenía asistencia en esta sesión: también cierra el escáner (reintentar no sirve). */
+    data object AlreadyRegistered : AttendanceUiState
+    data class Error(val message: String) : AttendanceUiState
 }
 
 @Composable
 fun QrScannerScreen(
     activeCourseName: String = "Desarrollo de Sistemas",
     activeTeacherName: String = "Prof. Morales",
+    registrationState: AttendanceUiState = AttendanceUiState.Idle,
     onNavigateBack: () -> Unit = {},
-    onRegisterAttendance: (QrPayload) -> Unit = {}
+    onRegisterAttendance: (QrPayload) -> Unit = {},
+    onResultDismissed: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var hasCameraPermission by remember {
@@ -192,15 +211,26 @@ fun QrScannerScreen(
     var showManualCodeDialog by remember { mutableStateOf(false) }
     var activeCamera by remember { mutableStateOf<Camera?>(null) }
 
-    val parsedPayload = remember(scannedResult) {
-        scannedResult?.let { parseQrPayload(it, activeCourseName) }
-    }
+    var invalidQr by remember { mutableStateOf(false) }
 
-    LaunchedEffect(parsedPayload) {
-        parsedPayload?.let { payload ->
+    // Al leer un QR: parsear y, si es válido, pedir el registro. El padre actualiza registrationState.
+    LaunchedEffect(scannedResult) {
+        val raw = scannedResult ?: return@LaunchedEffect
+        val payload = parseQrPayload(raw, activeCourseName)
+        if (payload == null) {
+            invalidQr = true
+            isProcessing = false
+            scannedResult = null
+        } else {
             onRegisterAttendance(payload)
         }
     }
+
+    // Registro terminado:
+    //  - Éxito: NO se reactiva el escáner (evita registros infinitos). Se cierra solo tras 2 s.
+    //  - Error: se libera para reintentar.
+    // Mientras hay un resultado en pantalla, el escáner no vuelve a leer.
+    // El cierre lo decide el usuario al tocar "Aceptar" en cada diálogo (abajo).
 
     Scaffold(
         topBar = {
@@ -233,7 +263,11 @@ fun QrScannerScreen(
                         isFlashOn = isFlashOn,
                         onCameraBound = { camera -> activeCamera = camera },
                         onQrScanned = { code ->
-                            if (!isProcessing && scannedResult == null) {
+                            // Solo se acepta una lectura a la vez: nada si ya se está procesando,
+                            // si hay un resultado en pantalla o si fue un QR inválido sin descartar.
+                            if (!isProcessing && scannedResult == null &&
+                                registrationState == AttendanceUiState.Idle && !invalidQr
+                            ) {
                                 isProcessing = true
                                 scannedResult = code
                             }
@@ -718,14 +752,41 @@ fun QrScannerScreen(
                 }
             }
 
-            // A11 --- Result Dialog
-            parsedPayload?.let { payload ->
-                AttendanceResultDialog(
-                    payload = payload,
+            // A11 --- Resultado real del registro
+            when (val state = registrationState) {
+                is AttendanceUiState.Success -> AttendanceResultDialog(
+                    payload = state.payload,
+                    // Aceptar cierra el escáner (o se cierra solo a los 2 s).
                     onDismiss = {
-                        scannedResult = null
-                        isProcessing = false
+                        onResultDismissed()
+                        onNavigateBack()
                     }
+                )
+                is AttendanceUiState.AlreadyRegistered -> AttendanceInfoDialog(
+                    message = "Ya registraste tu asistencia en esta sesión.",
+                    // Ya está registrado: Aceptar cierra el escáner.
+                    onDismiss = {
+                        onResultDismissed()
+                        onNavigateBack()
+                    }
+                )
+                is AttendanceUiState.Error -> AttendanceErrorDialog(
+                    message = state.message,
+                    // Error reintentable: Aceptar cierra el diálogo y libera el escáner.
+                    onDismiss = {
+                        onResultDismissed()
+                        isProcessing = false
+                        scannedResult = null
+                    }
+                )
+                else -> Unit
+            }
+
+            // QR no reconocido (no es de SmartAttendance).
+            if (invalidQr) {
+                AttendanceErrorDialog(
+                    message = "El código escaneado no es un QR de asistencia válido.",
+                    onDismiss = { invalidQr = false }
                 )
             }
 
@@ -840,6 +901,9 @@ fun AttendanceResultDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = DialogSurface,
+        titleContentColor = DialogOnSurface,
+        textContentColor = DialogOnSurface,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
@@ -860,7 +924,7 @@ fun AttendanceResultDialog(
                 Text(
                     text = "Asistencia Registrada",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = OnSurface
+                    color = DialogOnSurface
                 )
             }
         },
@@ -868,14 +932,15 @@ fun AttendanceResultDialog(
             Column {
                 Text(
                     text = "Curso: ${payload.courseName}",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    color = DialogOnSurface
                 )
                 if (payload.title.isNotBlank()) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Sesión: ${payload.title}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = OnSurface
+                        color = DialogOnSurface
                     )
                 }
                 Spacer(modifier = Modifier.height(4.dp))
@@ -890,13 +955,105 @@ fun AttendanceResultDialog(
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Text("Aceptar", color = Color.White)
+            }
+        }
+    )
+}
+
+@Composable
+fun AttendanceErrorDialog(
+    message: String,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = DialogSurface,
+        titleContentColor = DialogOnSurface,
+        textContentColor = DialogOnSurface,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFFEE2E2)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Close,
+                        contentDescription = "Error",
+                        tint = Color(0xFFB91C1C),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = "Token / Código: ${payload.rawToken.take(24)}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Primary
+                    text = "No se registró",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = DialogOnSurface
                 )
             }
+        },
+        text = {
+            Text(text = message, style = MaterialTheme.typography.bodyMedium, color = DialogOnSurface)
+        },
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Text("Entendido", color = Color.White)
+            }
+        }
+    )
+}
+
+@Composable
+fun AttendanceInfoDialog(
+    message: String,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = DialogSurface,
+        titleContentColor = DialogOnSurface,
+        textContentColor = DialogOnSurface,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(PrimaryContainer.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.CheckCircle,
+                        contentDescription = "Información",
+                        tint = Primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "Asistencia ya registrada",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = DialogOnSurface
+                )
+            }
+        },
+        text = {
+            Text(text = message, style = MaterialTheme.typography.bodyMedium, color = DialogOnSurface)
         },
         confirmButton = {
             Button(

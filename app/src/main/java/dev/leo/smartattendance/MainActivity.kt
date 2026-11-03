@@ -67,6 +67,13 @@ class MainActivity : ComponentActivity() {
                     mutableStateOf<NavRoutes>(NavRoutes.Login)
                 }
 
+                // Estado del registro de asistencia por QR.
+                var attendanceState by remember {
+                    mutableStateOf<dev.leo.smartattendance.feature.qrscanner.AttendanceUiState>(
+                        dev.leo.smartattendance.feature.qrscanner.AttendanceUiState.Idle
+                    )
+                }
+
                 // Check session & load user role from Firestore
                 LaunchedEffect(auth.currentUser) {
                     val firebaseUser = auth.currentUser
@@ -208,22 +215,46 @@ class MainActivity : ComponentActivity() {
                                 QrScannerScreen(
                                     activeCourseName = studentCourses.firstOrNull()?.name ?: "Desarrollo de Sistemas",
                                     activeTeacherName = studentCourses.firstOrNull()?.teacherName ?: "Prof. Morales",
+                                    registrationState = attendanceState,
                                     onNavigateBack = {
+                                        attendanceState = dev.leo.smartattendance.feature.qrscanner.AttendanceUiState.Idle
                                         currentRoute = NavRoutes.StudentHome
                                     },
                                     onRegisterAttendance = { payload ->
+                                        attendanceState = dev.leo.smartattendance.feature.qrscanner.AttendanceUiState.Loading
                                         scope.launch {
+                                            val user = currentUser
+                                            if (user == null) {
+                                                attendanceState = dev.leo.smartattendance.feature.qrscanner.AttendanceUiState.Error(
+                                                    "Tu sesión expiró. Vuelve a iniciar sesión."
+                                                )
+                                                return@launch
+                                            }
                                             val attendance = dev.leo.smartattendance.domain.model.Attendance(
                                                 sessionId = payload.sessionId,
                                                 courseId = payload.courseId,
                                                 courseName = payload.courseName,
-                                                studentId = currentUser?.uid ?: "",
-                                                studentName = currentUser?.fullName ?: "Estudiante",
-                                                institutionalCode = currentUser?.institutionalCode ?: "EST-2024",
+                                                studentId = user.uid,
+                                                studentName = user.fullName,
+                                                institutionalCode = user.institutionalCode,
                                                 status = dev.leo.smartattendance.domain.model.AttendanceStatus.PRESENT
                                             )
-                                            courseRepository.registerAttendance(attendance)
+                                            val result = courseRepository.registerAttendance(attendance, payload.rawToken)
+                                            val error = result.exceptionOrNull()
+                                            attendanceState = when {
+                                                result.isSuccess ->
+                                                    dev.leo.smartattendance.feature.qrscanner.AttendanceUiState.Success(payload)
+                                                error is dev.leo.smartattendance.data.datasource.firestore.AlreadyRegisteredException ->
+                                                    dev.leo.smartattendance.feature.qrscanner.AttendanceUiState.AlreadyRegistered
+                                                else ->
+                                                    dev.leo.smartattendance.feature.qrscanner.AttendanceUiState.Error(
+                                                        error?.message ?: "No se pudo registrar la asistencia."
+                                                    )
+                                            }
                                         }
+                                    },
+                                    onResultDismissed = {
+                                        attendanceState = dev.leo.smartattendance.feature.qrscanner.AttendanceUiState.Idle
                                     }
                                 )
                             }

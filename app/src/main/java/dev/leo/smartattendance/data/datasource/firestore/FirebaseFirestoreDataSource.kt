@@ -11,6 +11,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
+/** El estudiante ya tiene asistencia en esta sesión. No tiene sentido reintentar. */
+class AlreadyRegisteredException : Exception("Ya registraste tu asistencia en esta sesión")
+
 class FirebaseFirestoreDataSource(private val db: FirebaseFirestore) {
 
     // --- USER OPERATIONS ---
@@ -255,22 +258,59 @@ class FirebaseFirestoreDataSource(private val db: FirebaseFirestore) {
         awaitClose { listener.remove() }
     }
 
-    suspend fun registerAttendance(attendanceDto: AttendanceDto): Result<Boolean> {
+    /**
+     * Registra la asistencia por QR (modo demo, sin Cloud Functions).
+     * Busca el token válido por su hash, arma el documento con el Timestamp del servidor
+     * y lo escribe con el id determinístico sessionId_studentId. Las reglas validan todo.
+     *
+     * @param rawToken el token en claro leído del QR.
+     */
+    suspend fun registerAttendance(attendanceDto: AttendanceDto, rawToken: String): Result<Boolean> {
         return try {
             val attendanceId = "${attendanceDto.sessionId}_${attendanceDto.studentId}"
             val docRef = db.collection("attendances").document(attendanceId)
 
             val existingDoc = docRef.get().await()
             if (existingDoc.exists()) {
-                return Result.failure(Exception("Ya has registrado tu asistencia en esta sesión"))
+                return Result.failure(AlreadyRegisteredException())
             }
 
-            val finalDto = attendanceDto.copy(id = attendanceId)
-            docRef.set(finalDto).await()
+            // Buscar el token vigente por su hash (mismo SHA-256 que usa el panel web).
+            val tokenHash = sha256Hex(rawToken.trim())
+            val tokenQuery = db.collection("sessionTokens")
+                .whereEqualTo("tokenHash", tokenHash)
+                .whereEqualTo("sessionId", attendanceDto.sessionId)
+                .whereEqualTo("status", "ACTIVE")
+                .limit(1)
+                .get()
+                .await()
+            val tokenDoc = tokenQuery.documents.firstOrNull()
+                ?: return Result.failure(Exception("El código QR no es válido o expiró"))
+
+            val data = hashMapOf(
+                "id" to attendanceId,
+                "sessionId" to attendanceDto.sessionId,
+                "courseId" to attendanceDto.courseId,
+                "studentId" to attendanceDto.studentId,
+                "studentName" to attendanceDto.studentName,
+                "studentCode" to attendanceDto.studentCode,
+                "status" to attendanceDto.status,
+                "source" to "QR",
+                "tokenId" to tokenDoc.id,
+                "registeredAt" to com.google.firebase.firestore.FieldValue.serverTimestamp(),
+                "updatedBy" to null,
+                "updateReason" to null
+            )
+            docRef.set(data).await()
             Result.success(true)
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    private fun sha256Hex(text: String): String {
+        val bytes = java.security.MessageDigest.getInstance("SHA-256").digest(text.toByteArray(Charsets.UTF_8))
+        return bytes.joinToString("") { "%02x".format(it) }
     }
 
     fun getStudentAttendanceHistoryFlow(studentId: String): Flow<List<AttendanceDto>> = callbackFlow {
