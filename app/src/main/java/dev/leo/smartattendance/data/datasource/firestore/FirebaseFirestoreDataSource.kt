@@ -9,12 +9,73 @@ import dev.leo.smartattendance.data.dto.UserDto
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 /** El estudiante ya tiene asistencia en esta sesión. No tiene sentido reintentar. */
 class AlreadyRegisteredException : Exception("Ya registraste tu asistencia en esta sesión")
 
 class FirebaseFirestoreDataSource(private val db: FirebaseFirestore) {
+
+    // Cache de nombres de docente por uid (evita releer users en cada snapshot).
+    private val teacherNameCache = mutableMapOf<String, String>()
+
+    /** Nombre del docente desde users/{uid}. Vacío si no se puede leer. */
+    private suspend fun resolveTeacherName(teacherId: String): String {
+        teacherNameCache[teacherId]?.let { return it }
+        return try {
+            val user = db.collection("users").document(teacherId).get().await()
+            val first = user.getString("firstName") ?: ""
+            val last = user.getString("lastName") ?: ""
+            val name = "$first $last".trim().ifBlank {
+                user.getString("displayName") ?: user.getString("name") ?: ""
+            }
+            if (name.isNotBlank()) teacherNameCache[teacherId] = name
+            name
+        } catch (e: Exception) {
+            ""
+        }
+    }
+
+    /**
+     * Porcentaje de asistencia del estudiante en un curso (misma regla que el panel web):
+     *   % = (presentes + tardanzas) / (sesiones CERRADAS del curso − justificadas del estudiante)
+     * Devuelve -1 si aún no hay sesiones cerradas (sin datos).
+     */
+    private suspend fun computeAttendanceRate(courseId: String, studentId: String): Int {
+        return try {
+            // Sesiones cerradas del curso.
+            val closedSessions = db.collection("sessions")
+                .whereEqualTo("courseId", courseId)
+                .whereEqualTo("status", "CLOSED")
+                .get()
+                .await()
+            val closedCount = closedSessions.size()
+            if (closedCount == 0) return -1
+
+            // Asistencias del estudiante en este curso.
+            val myAttendances = db.collection("attendances")
+                .whereEqualTo("courseId", courseId)
+                .whereEqualTo("studentId", studentId)
+                .get()
+                .await()
+
+            var attended = 0   // PRESENT o LATE
+            var justified = 0  // JUSTIFIED (se excluye del total)
+            for (doc in myAttendances.documents) {
+                when (doc.getString("status")?.uppercase()) {
+                    "PRESENT", "LATE" -> attended++
+                    "JUSTIFIED" -> justified++
+                }
+            }
+
+            val denominator = closedCount - justified
+            if (denominator <= 0) return -1
+            ((attended.toDouble() / denominator) * 100).toInt().coerceIn(0, 100)
+        } catch (e: Exception) {
+            -1
+        }
+    }
 
     // --- USER OPERATIONS ---
     suspend fun getUser(uid: String): UserDto? {
@@ -97,7 +158,20 @@ class FirebaseFirestoreDataSource(private val db: FirebaseFirestore) {
                                 } else null
                             } ?: emptyList()
 
-                            trySend(enrolledCourses)
+                            // Se enriquece cada curso: nombre del docente (users/{uid}) y
+                            // porcentaje de asistencia real del estudiante.
+                            launch {
+                                val resolved = enrolledCourses.map { c ->
+                                    val teacher = if (c.teacherName.isBlank() && c.teacherIds.isNotEmpty()) {
+                                        resolveTeacherName(c.teacherIds.first())
+                                    } else c.teacherName
+                                    c.copy(
+                                        teacherName = teacher,
+                                        attendanceRate = computeAttendanceRate(c.id, studentId)
+                                    )
+                                }
+                                trySend(resolved)
+                            }
                         }
                 }
             }

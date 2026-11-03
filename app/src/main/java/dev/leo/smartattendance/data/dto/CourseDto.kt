@@ -10,5 +10,9 @@ data class CourseDto(
     val teacherName: String = "",
     val status: String = "ACTIVE",
     val studentCount: Int = 0,
-    val schedule: String = ""
+    val schedule: String = "",
+    // No se guarda en Firestore: lo calcula el DataSource para el estudiante en sesión.
+    // -1 = aún no hay sesiones cerradas (sin datos).
+    @get:com.google.firebase.firestore.Exclude
+    val attendanceRate: Int = -1
 )

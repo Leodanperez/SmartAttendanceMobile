@@ -13,7 +13,8 @@ fun CourseDto.toDomain(documentId: String = ""): Course {
         teacherIds = teacherIds,
         teacherName = teacherName,
         studentCount = studentCount,
-        attendanceRate = 90,
+        // Lo calcula el DataSource; -1 = sin datos todavía.
+        attendanceRate = attendanceRate,
         schedule = schedule
     )
 }

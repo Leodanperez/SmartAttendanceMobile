@@ -24,8 +24,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import dev.leo.smartattendance.ui.theme.OnSurface
 import dev.leo.smartattendance.ui.theme.Primary
+
+// Diálogo siempre en modo claro (independiente del tema del dispositivo).
+private val DialogSurface = Color.White
+private val DialogOnSurface = Color(0xFF0F172A)
 
 @Composable
 fun EnrollCourseDialog(
@@ -37,18 +40,22 @@ fun EnrollCourseDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = DialogSurface,
+        titleContentColor = DialogOnSurface,
+        textContentColor = DialogOnSurface,
         title = {
             Text(
                 text = "Unirse a un Curso",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = OnSurface
+                color = DialogOnSurface
             )
         },
         text = {
             Column {
                 Text(
                     text = "Ingresa el código proporcionado por tu docente",
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodySmall,
+                    color = DialogOnSurface
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 OutlinedTextField(

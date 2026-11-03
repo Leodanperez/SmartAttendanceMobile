@@ -123,7 +123,7 @@ fun StudentHomeScreen(
                             color = OnSurface
                         )
                         Text(
-                            text = "Escanea el código QR proyectado en el aula (Android o Angular)",
+                            text = "Escanea el código QR proyectado",
                             style = MaterialTheme.typography.bodySmall,
                             color = OnSurfaceVariant
                         )
@@ -212,10 +212,11 @@ fun StudentHomeScreen(
             } else {
                 items(courses) { course ->
                     StudentCourseCard(
-                        code = course.code.ifEmpty { "DS-2026" },
+                        code = course.code.ifEmpty { "—" },
                         name = course.name,
-                        teacher = course.teacherName.ifEmpty { "Docente Asignado" },
-                        attendanceRate = "${course.attendanceRate.takeIf { it > 0 } ?: 100}%"
+                        teacher = course.teacherName.ifEmpty { "Por asignar" },
+                        // -1 = aún no hay sesiones cerradas en el curso.
+                        attendanceRate = if (course.attendanceRate < 0) "Sin datos" else "${course.attendanceRate}%"
                     )
                     Spacer(modifier = Modifier.height(10.dp))
                 }
@@ -279,25 +280,28 @@ fun StudentCourseCard(
                 )
             }
 
+            val hasData = attendanceRate.endsWith("%")
             Surface(
                 shape = CircleShape,
-                color = Emerald50
+                color = if (hasData) Emerald50 else SurfaceContainerHigh
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.CheckCircle,
-                        contentDescription = "Asistencia",
-                        tint = Emerald800,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
+                    if (hasData) {
+                        Icon(
+                            imageVector = Icons.Outlined.CheckCircle,
+                            contentDescription = "Asistencia",
+                            tint = Emerald800,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
                     Text(
                         text = attendanceRate,
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = Emerald800
+                        color = if (hasData) Emerald800 else OnSurfaceVariant
                     )
                 }
             }
