@@ -57,6 +57,10 @@ class CourseRepositoryImpl(
         firestoreDataSource.closeSession(sessionId)
     }
 
+    override suspend fun closeSessionAndMarkAbsent(sessionId: String, courseId: String): Int {
+        return firestoreDataSource.closeSessionAndMarkAbsent(sessionId, courseId)
+    }
+
     override suspend fun registerAttendance(attendance: Attendance, rawToken: String): Result<Boolean> {
         return firestoreDataSource.registerAttendance(attendance.toDto(), rawToken)
     }

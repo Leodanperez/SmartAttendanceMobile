@@ -341,8 +341,13 @@ fun TeacherQrDisplayScreen(
                                 if (closing) return@Button
                                 closing = true
                                 scope.launch {
-                                    courseRepository?.closeSession(currentSession.sessionId)
-                                    Toast.makeText(context, "Sesión cerrada", Toast.LENGTH_SHORT).show()
+                                    val faltas = courseRepository?.closeSessionAndMarkAbsent(
+                                        currentSession.sessionId,
+                                        currentSession.courseId
+                                    ) ?: 0
+                                    val msg = if (faltas > 0) "Sesión cerrada. $faltas falta(s) registrada(s)."
+                                             else "Sesión cerrada."
+                                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                                     onCloseSession()
                                 }
                             },

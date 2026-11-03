@@ -505,6 +505,68 @@ class FirebaseFirestoreDataSource(private val db: FirebaseFirestore) {
     }
 
     /**
+     * Cierra la sesión y marca ABSENT (falta) a los inscritos ACTIVE del curso que no registraron.
+     * Modo demo sin Cloud Functions: lo ejecuta el docente. Cada falta lleva motivo para cumplir las reglas.
+     * Devuelve cuántas faltas se registraron.
+     */
+    suspend fun closeSessionAndMarkAbsent(sessionId: String, courseId: String): Int {
+        return try {
+            val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
+
+            // Inscritos ACTIVE del curso.
+            val enrolled = db.collection("enrollments")
+                .whereEqualTo("courseId", courseId)
+                .whereEqualTo("status", "ACTIVE")
+                .get().await()
+                .documents.mapNotNull { it.getString("studentId") }
+
+            // Estudiantes que ya tienen registro en esta sesión.
+            val registered = db.collection("attendances")
+                .whereEqualTo("sessionId", sessionId)
+                .get().await()
+                .documents.mapNotNull { it.getString("studentId") }
+                .toSet()
+
+            val absentees = enrolled.filter { it !in registered }
+
+            val batch = db.batch()
+            // Cerrar la sesión.
+            batch.update(
+                db.collection("sessions").document(sessionId),
+                mapOf(
+                    "status" to "CLOSED",
+                    "closedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
+                )
+            )
+            // Marcar falta a cada inscrito sin registro.
+            for (studentId in absentees) {
+                val id = "${sessionId}_$studentId"
+                val data = hashMapOf(
+                    "id" to id,
+                    "sessionId" to sessionId,
+                    "courseId" to courseId,
+                    "studentId" to studentId,
+                    "status" to "ABSENT",
+                    "source" to "MANUAL",
+                    "registeredAt" to com.google.firebase.firestore.FieldValue.serverTimestamp(),
+                    "updatedBy" to uid,
+                    "updateReason" to "Cierre de sesión: sin registro de asistencia.",
+                    "updatedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
+                )
+                batch.set(db.collection("attendances").document(id), data)
+            }
+            batch.commit().await()
+            revokeActiveTokens(sessionId)
+            absentees.size
+        } catch (e: Exception) {
+            e.printStackTrace()
+            // Fallback: al menos cerrar la sesión.
+            closeSession(sessionId)
+            0
+        }
+    }
+
+    /**
      * Crea una sesión ACTIVE para el docente y genera el primer token del QR (igual que el panel web).
      * Guarda solo el hash SHA-256 del token en sessionTokens; el token en claro vuelve una vez para
      * dibujar el QR. Devuelve null si algo falla.
@@ -745,7 +807,11 @@ class FirebaseFirestoreDataSource(private val db: FirebaseFirestore) {
                 return Result.failure(Exception("La sesión aún no ha iniciado. Empieza a las $hhmm."))
             }
             if (expiresAt > 0 && now > expiresAt) {
-                return Result.failure(Exception("La ventana de asistencia de esta sesión ya terminó."))
+                val finHhmm = java.text.SimpleDateFormat("HH:mm", java.util.Locale.forLanguageTag("es"))
+                    .format(java.util.Date(expiresAt))
+                return Result.failure(
+                    Exception("Se venció la hora permitida para registrar asistencia (cerró a las $finHhmm).")
+                )
             }
 
             // Buscar el token vigente por su hash (mismo SHA-256 que usa el panel web).

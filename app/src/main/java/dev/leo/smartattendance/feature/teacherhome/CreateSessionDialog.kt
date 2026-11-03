@@ -184,6 +184,25 @@ fun CreateSessionDialog(
                     )
                 }
 
+                // Fecha/hora fin calculada (inicio + duración).
+                val durationMin = durationText.toIntOrNull()
+                if (durationMin != null && durationMin > 0) {
+                    val endText = remember(startsAt, durationMin) {
+                        dateTimeFormat.format(Date(startsAt + durationMin * 60_000L))
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Fin de la sesión: $endText",
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                        color = colors.onSurface
+                    )
+                    Text(
+                        text = "Al llegar esta hora, cierra la sesión para marcar faltas a quienes no registraron.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant
+                    )
+                }
+
                 if (error != null) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
