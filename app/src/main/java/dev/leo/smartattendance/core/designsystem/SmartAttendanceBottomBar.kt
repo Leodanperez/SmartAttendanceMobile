@@ -2,16 +2,15 @@ package dev.leo.smartattendance.core.designsystem
 import dev.leo.smartattendance.ui.theme.AppTheme
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -204,23 +203,24 @@ fun RowScope.SmartAttendanceNavItem(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
+    // La pestaña activa resalta con una píldora redonda detrás del ícono; el texto va siempre debajo.
     val pillColor by animateColorAsState(
         targetValue = if (isSelected) AppTheme.colors.primaryContainer else Color.Transparent,
         animationSpec = tween(220),
         label = "pill",
     )
-    val contentColor by animateColorAsState(
+    val iconColor by animateColorAsState(
         targetValue = if (isSelected) Color.White else AppTheme.colors.onSurfaceVariant,
         animationSpec = tween(220),
-        label = "content",
+        label = "icon",
     )
-    val horizontalPad by animateDpAsState(
-        targetValue = if (isSelected) 16.dp else 0.dp,
+    val labelColor by animateColorAsState(
+        targetValue = if (isSelected) AppTheme.colors.primary else AppTheme.colors.onSurfaceVariant,
         animationSpec = tween(220),
-        label = "pad",
+        label = "label",
     )
 
-    Box(
+    Column(
         modifier = Modifier
             .weight(1f)
             .selectable(
@@ -229,39 +229,39 @@ fun RowScope.SmartAttendanceNavItem(
                 role = Role.Tab,
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
-            ),
-        contentAlignment = Alignment.Center,
+            )
+            .padding(vertical = 2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
+        // Ícono dentro de una píldora redonda.
+        Box(
             modifier = Modifier
-                .heightIn(min = 44.dp)
                 .clip(CircleShape)
                 .background(pillColor)
-                .padding(horizontal = horizontalPad, vertical = 8.dp),
+                .padding(horizontal = 18.dp, vertical = 5.dp),
+            contentAlignment = Alignment.Center,
         ) {
             val iconVector = if (isSelected) item.selectedIcon else item.icon
             if (item.hasBadge) {
                 BadgedBox(
                     badge = { Badge(containerColor = MaterialTheme.colorScheme.error, modifier = Modifier.size(7.dp)) }
                 ) {
-                    Icon(iconVector, contentDescription = item.label, tint = contentColor, modifier = Modifier.size(22.dp))
+                    Icon(iconVector, contentDescription = item.label, tint = iconColor, modifier = Modifier.size(22.dp))
                 }
             } else {
-                Icon(iconVector, contentDescription = item.label, tint = contentColor, modifier = Modifier.size(22.dp))
-            }
-
-            // El texto solo aparece en la pestaña activa (estilo pill expandible).
-            if (isSelected) {
-                Text(
-                    text = item.label,
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = contentColor,
-                    maxLines = 1,
-                    modifier = Modifier.padding(start = 8.dp),
-                )
+                Icon(iconVector, contentDescription = item.label, tint = iconColor, modifier = Modifier.size(22.dp))
             }
         }
+
+        // Texto siempre visible, debajo del ícono (estilo iOS).
+        Text(
+            text = item.label,
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+            ),
+            color = labelColor,
+            maxLines = 1,
+            modifier = Modifier.padding(top = 3.dp),
+        )
     }
 }
