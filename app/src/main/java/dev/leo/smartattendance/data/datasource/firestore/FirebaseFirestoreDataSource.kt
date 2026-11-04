@@ -39,6 +39,15 @@ data class RotatedToken(
     val tokenExpiresAtMillis: Long
 )
 
+/** Entrada del roster en vivo de una sesión (reporte del docente). status null = pendiente. */
+data class RosterEntryRow(
+    val studentId: String,
+    val name: String,
+    val code: String,
+    val status: String?,
+    val registeredAtMillis: Long?,
+)
+
 /** Fila de actividad reciente del docente. */
 data class TeacherActivityRow(
     val sessionId: String,
@@ -766,6 +775,85 @@ class FirebaseFirestoreDataSource(private val db: FirebaseFirestore) {
                     doc.toObject(AttendanceDto::class.java)?.copy(id = doc.id)
                 } ?: emptyList()
                 trySend(attendances)
+            }
+        awaitClose { listener.remove() }
+    }
+
+    // Cache de nombres de estudiante por uid (evita releer users en cada snapshot del roster).
+    private val studentNameCache = mutableMapOf<String, Pair<String, String>>()
+
+    /** Nombre y código institucional de un estudiante desde users/{uid}. */
+    private suspend fun resolveStudent(uid: String): Pair<String, String> {
+        studentNameCache[uid]?.let { return it }
+        return try {
+            val d = db.collection("users").document(uid).get().await()
+            val first = d.getString("firstName") ?: ""
+            val last = d.getString("lastName") ?: ""
+            val name = "$first $last".trim().ifBlank { d.getString("displayName") ?: "Estudiante" }
+            val code = d.getString("institutionalCode") ?: ""
+            val pair = name to code
+            studentNameCache[uid] = pair
+            pair
+        } catch (e: Exception) {
+            "Estudiante" to ""
+        }
+    }
+
+    /**
+     * Roster en vivo de una sesión para el reporte del docente: todos los inscritos ACTIVE del curso,
+     * cada uno con su estado real (PRESENT/LATE/JUSTIFIED del registro, o PENDING si no registró).
+     * En tiempo real: se recalcula cuando cambian las asistencias de la sesión.
+     */
+    fun getSessionRosterFlow(sessionId: String, courseId: String): Flow<List<RosterEntryRow>> = callbackFlow {
+        val listener = db.collection("attendances")
+            .whereEqualTo("sessionId", sessionId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+                val attByStudent = snapshot?.documents.orEmpty().associate { doc ->
+                    (doc.getString("studentId") ?: "") to doc
+                }
+                launch {
+                    try {
+                        // Inscritos ACTIVE del curso.
+                        val enrolled = db.collection("enrollments")
+                            .whereEqualTo("courseId", courseId)
+                            .whereEqualTo("status", "ACTIVE")
+                            .get().await()
+                            .documents.mapNotNull { it.getString("studentId") }
+                        // Incluye también a quien registró aunque ya no figure inscrito.
+                        val ids = (enrolled + attByStudent.keys).filter { it.isNotBlank() }.distinct()
+
+                        val rows = ids.map { uid ->
+                            val att = attByStudent[uid]
+                            val status = att?.getString("status")?.uppercase()
+                            // Nombre/código: del propio registro si los trae; si no, de users/{uid}.
+                            val nameFromAtt = att?.getString("studentName")?.takeIf { it.isNotBlank() }
+                            val codeFromAtt = att?.getString("studentCode")?.takeIf { it.isNotBlank() }
+                            val (name, code) = if (nameFromAtt != null) {
+                                nameFromAtt to (codeFromAtt ?: "")
+                            } else {
+                                resolveStudent(uid)
+                            }
+                            RosterEntryRow(
+                                studentId = uid,
+                                name = name,
+                                code = code,
+                                status = status, // null = PENDING (sin registro)
+                                registeredAtMillis = when (val raw = att?.get("registeredAt")) {
+                                    is com.google.firebase.Timestamp -> raw.toDate().time
+                                    is Number -> raw.toLong()
+                                    else -> null
+                                },
+                            )
+                        }.sortedBy { it.name.lowercase() }
+                        trySend(rows)
+                    } catch (e: Exception) {
+                        trySend(emptyList())
+                    }
+                }
             }
         awaitClose { listener.remove() }
     }

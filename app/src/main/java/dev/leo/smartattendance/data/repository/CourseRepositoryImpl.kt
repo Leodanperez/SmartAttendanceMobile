@@ -7,8 +7,10 @@ import dev.leo.smartattendance.domain.model.ActiveSession
 import dev.leo.smartattendance.domain.model.Attendance
 import dev.leo.smartattendance.domain.model.Course
 import dev.leo.smartattendance.domain.model.CourseSessionSummary
+import dev.leo.smartattendance.domain.model.AttendanceStatus
 import dev.leo.smartattendance.domain.model.QrSession
 import dev.leo.smartattendance.domain.model.RecentActivity
+import dev.leo.smartattendance.domain.model.RosterEntry
 import dev.leo.smartattendance.domain.model.Session
 import dev.leo.smartattendance.domain.model.TeacherActivity
 import dev.leo.smartattendance.domain.repository.CourseRepository
@@ -46,6 +48,22 @@ class CourseRepositoryImpl(
     override fun getLiveAttendancesFlow(sessionId: String): Flow<List<Attendance>> {
         return firestoreDataSource.getLiveAttendancesFlow(sessionId).map { dtos ->
             dtos.map { it.toDomain(it.id) }
+        }
+    }
+
+    override fun getSessionRosterFlow(sessionId: String, courseId: String): Flow<List<RosterEntry>> {
+        return firestoreDataSource.getSessionRosterFlow(sessionId, courseId).map { rows ->
+            rows.map { r ->
+                RosterEntry(
+                    studentId = r.studentId,
+                    name = r.name,
+                    code = r.code,
+                    status = r.status?.let {
+                        runCatching { AttendanceStatus.valueOf(it) }.getOrNull()
+                    },
+                    registeredAtMillis = r.registeredAtMillis,
+                )
+            }
         }
     }
 

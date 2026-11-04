@@ -27,22 +27,29 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.leo.smartattendance.domain.model.Attendance
 import dev.leo.smartattendance.domain.model.AttendanceStatus
+import dev.leo.smartattendance.domain.model.RosterEntry
+import dev.leo.smartattendance.domain.model.Session
 
-val sampleRoster = listOf(
-    Attendance("1", "s1", "c1", "Algoritmos y Estructuras", "st1", "Carlos Mendoza", "EST-2024-01", AttendanceStatus.PRESENT),
-    Attendance("2", "s1", "c1", "Algoritmos y Estructuras", "st2", "Ana López", "EST-2024-02", AttendanceStatus.PRESENT),
-    Attendance("3", "s1", "c1", "Algoritmos y Estructuras", "st3", "Luis Gómez", "EST-2024-03", AttendanceStatus.LATE),
-    Attendance("4", "s1", "c1", "Algoritmos y Estructuras", "st4", "María Torres", "EST-2024-04", AttendanceStatus.PRESENT),
-    Attendance("5", "s1", "c1", "Algoritmos y Estructuras", "st5", "Juan Pérez", "EST-2024-05", AttendanceStatus.ABSENT)
-)
-
+/**
+ * Reporte de asistencia en vivo del docente, con datos reales de Firestore.
+ * Muestra la sesión activa, su resumen (presentes/tardanzas/faltas/pendientes) y el roster en vivo.
+ */
 @Composable
-fun ReportsScreen() {
+fun ReportsScreen(
+    activeSession: Session? = null,
+    roster: List<RosterEntry> = emptyList()
+) {
+    val present = roster.count { it.status == AttendanceStatus.PRESENT }
+    val late = roster.count { it.status == AttendanceStatus.LATE }
+    val justified = roster.count { it.status == AttendanceStatus.JUSTIFIED }
+    val pending = roster.count { it.status == null }
+    val absent = roster.count { it.status == AttendanceStatus.ABSENT }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp)
@@ -54,22 +61,53 @@ fun ReportsScreen() {
                 color = AppTheme.colors.onSurface
             )
             Text(
-                text = "Algoritmos y Estructuras de Datos • Grupo B",
+                text = if (activeSession != null)
+                    "${activeSession.courseName.ifBlank { "Curso" }} • ${activeSession.title.ifBlank { "Sesión" }}"
+                else
+                    "No tienes una sesión activa en este momento.",
                 style = MaterialTheme.typography.bodySmall,
                 color = AppTheme.colors.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // Summary Cards Row
+        if (activeSession == null) {
+            item {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = AppTheme.colors.surfaceContainerLowest,
+                    shadowElevation = 1.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Inicia una sesión desde Inicio para ver aquí, en tiempo real, quién va registrando su asistencia.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = AppTheme.colors.onSurfaceVariant,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            }
+            return@LazyColumn
+        }
+
+        // Resumen en vivo.
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                SummaryPill(title = "Presentes", count = "18", color = AppTheme.colors.successText, bg = AppTheme.colors.successBg, modifier = Modifier.weight(1f))
-                SummaryPill(title = "Tardanzas", count = "2", color = AppTheme.colors.warningText, bg = AppTheme.colors.warningBg, modifier = Modifier.weight(1f))
-                SummaryPill(title = "Faltas", count = "4", color = MaterialTheme.colorScheme.error, bg = MaterialTheme.colorScheme.errorContainer, modifier = Modifier.weight(1f))
+                SummaryPill("Presentes", present.toString(), AppTheme.colors.successText, AppTheme.colors.successBg, Modifier.weight(1f))
+                SummaryPill("Tardanzas", late.toString(), AppTheme.colors.warningText, AppTheme.colors.warningBg, Modifier.weight(1f))
+                SummaryPill("Pendientes", pending.toString(), AppTheme.colors.onSurfaceVariant, AppTheme.colors.surfaceContainerHigh, Modifier.weight(1f))
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                SummaryPill("Faltas", absent.toString(), MaterialTheme.colorScheme.error, MaterialTheme.colorScheme.errorContainer, Modifier.weight(1f))
+                SummaryPill("Justificadas", justified.toString(), AppTheme.colors.primary, AppTheme.colors.primaryFixed, Modifier.weight(1f))
+                SummaryPill("Inscritos", roster.size.toString(), AppTheme.colors.onSurface, AppTheme.colors.surfaceContainerHigh, Modifier.weight(1f))
             }
             Spacer(modifier = Modifier.height(16.dp))
         }
@@ -83,9 +121,19 @@ fun ReportsScreen() {
             )
         }
 
-        items(sampleRoster) { item ->
-            RosterItemCard(attendance = item)
-            Spacer(modifier = Modifier.height(8.dp))
+        if (roster.isEmpty()) {
+            item {
+                Text(
+                    text = "Aún no hay estudiantes inscritos en este curso.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AppTheme.colors.onSurfaceVariant
+                )
+            }
+        } else {
+            items(roster) { entry ->
+                RosterItemCard(entry)
+                Spacer(modifier = Modifier.height(8.dp))
+            }
         }
     }
 }
@@ -94,8 +142,8 @@ fun ReportsScreen() {
 fun SummaryPill(
     title: String,
     count: String,
-    color: androidx.compose.ui.graphics.Color,
-    bg: androidx.compose.ui.graphics.Color,
+    color: Color,
+    bg: Color,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -114,7 +162,7 @@ fun SummaryPill(
 }
 
 @Composable
-fun RosterItemCard(attendance: Attendance) {
+fun RosterItemCard(entry: RosterEntry) {
     Card(
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainerLowest),
@@ -126,7 +174,7 @@ fun RosterItemCard(attendance: Attendance) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                 Box(
                     modifier = Modifier
                         .size(36.dp)
@@ -135,7 +183,7 @@ fun RosterItemCard(attendance: Attendance) {
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = attendance.studentName.take(1),
+                        text = entry.name.take(1).uppercase(),
                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                         color = AppTheme.colors.primary
                     )
@@ -143,31 +191,29 @@ fun RosterItemCard(attendance: Attendance) {
 
                 Spacer(modifier = Modifier.width(10.dp))
 
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = attendance.studentName,
+                        text = entry.name,
                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                         color = AppTheme.colors.onSurface
                     )
                     Text(
-                        text = attendance.institutionalCode,
+                        text = entry.code.ifBlank { "Sin código" },
                         style = MaterialTheme.typography.bodySmall,
                         color = AppTheme.colors.onSurfaceVariant
                     )
                 }
             }
 
-            val (statusText, statusBg, statusColor) = when (attendance.status) {
+            val (statusText, statusBg, statusColor) = when (entry.status) {
                 AttendanceStatus.PRESENT -> Triple("PRESENTE", AppTheme.colors.successBg, AppTheme.colors.successText)
                 AttendanceStatus.LATE -> Triple("TARDANZA", AppTheme.colors.warningBg, AppTheme.colors.warningText)
                 AttendanceStatus.ABSENT -> Triple("FALTA", MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.error)
-                AttendanceStatus.JUSTIFIED -> Triple("JUSTIFICADO", AppTheme.colors.surfaceContainerHigh, AppTheme.colors.primary)
+                AttendanceStatus.JUSTIFIED -> Triple("JUSTIFICADO", AppTheme.colors.primaryFixed, AppTheme.colors.primary)
+                null -> Triple("PENDIENTE", AppTheme.colors.surfaceContainerHigh, AppTheme.colors.onSurfaceVariant)
             }
 
-            Surface(
-                shape = CircleShape,
-                color = statusBg
-            ) {
+            Surface(shape = CircleShape, color = statusBg) {
                 Text(
                     text = statusText,
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp),

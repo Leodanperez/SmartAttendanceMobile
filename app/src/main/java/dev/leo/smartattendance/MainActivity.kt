@@ -173,6 +173,14 @@ class MainActivity : ComponentActivity() {
                         } ?: 0
                     }
 
+                    // Roster en vivo de la sesión activa del docente (reporte de asistencia en vivo).
+                    val rosterFlow = remember(teacherActiveSession?.id, teacherActiveSession?.courseId) {
+                        val s = teacherActiveSession
+                        if (s != null) courseRepository.getSessionRosterFlow(s.id, s.courseId)
+                        else kotlinx.coroutines.flow.flowOf(emptyList())
+                    }
+                    val teacherRoster = rosterFlow.collectAsState(initial = emptyList()).value
+
                     // Actividad reciente del docente (se recarga cuando cambia la sesión activa).
                     LaunchedEffect(currentUser?.uid, teacherActiveSession?.id) {
                         val uid = currentUser?.uid
@@ -433,7 +441,15 @@ class MainActivity : ComponentActivity() {
                                                 }
                                             }
                                         )
-                                        NavRoutes.Reports -> ReportsScreen()
+                                        NavRoutes.Reports ->
+                                            if (effectiveRole == UserRole.STUDENT) {
+                                                ReportsScreen()
+                                            } else {
+                                                ReportsScreen(
+                                                    activeSession = teacherActiveSession,
+                                                    roster = teacherRoster,
+                                                )
+                                            }
                                         NavRoutes.Profile -> ProfileScreen(
                                             user = currentUser ?: User(role = effectiveRole),
                                             themeMode = themeController.mode,

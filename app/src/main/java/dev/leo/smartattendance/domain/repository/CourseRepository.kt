@@ -6,6 +6,7 @@ import dev.leo.smartattendance.domain.model.Course
 import dev.leo.smartattendance.domain.model.CourseSessionSummary
 import dev.leo.smartattendance.domain.model.QrSession
 import dev.leo.smartattendance.domain.model.RecentActivity
+import dev.leo.smartattendance.domain.model.RosterEntry
 import dev.leo.smartattendance.domain.model.Session
 import dev.leo.smartattendance.domain.model.TeacherActivity
 import kotlinx.coroutines.flow.Flow
@@ -17,6 +18,8 @@ interface CourseRepository {
     /** Sesiones activas y vigentes de los cursos del estudiante (para avisarle en su Home). */
     fun getActiveSessionsForCoursesFlow(courseIds: List<String>): Flow<List<Session>>
     fun getLiveAttendancesFlow(sessionId: String): Flow<List<Attendance>>
+    /** Roster en vivo de una sesión: inscritos con su estado (o pendiente). Para el reporte del docente. */
+    fun getSessionRosterFlow(sessionId: String, courseId: String): Flow<List<RosterEntry>>
     suspend fun createSession(session: Session): String
     suspend fun closeSession(sessionId: String)
     /** Cierra la sesión y marca falta a los inscritos sin registro. Devuelve nº de faltas. */
