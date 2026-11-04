@@ -8,6 +8,7 @@ fun AttendanceDto.toDomain(documentId: String = ""): Attendance {
     val parsedStatus = try {
         AttendanceStatus.valueOf(status.uppercase().trim())
     } catch (e: Exception) {
+        e.printStackTrace()
         AttendanceStatus.PRESENT
     }
 

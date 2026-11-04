@@ -118,6 +118,7 @@ class MainActivity : ComponentActivity() {
                                 val role = try {
                                     UserRole.valueOf(userDto.role.uppercase().trim())
                                 } catch (e: Exception) {
+                                    e.printStackTrace()
                                     UserRole.STUDENT
                                 }
                                 currentUser = User(
@@ -175,8 +176,8 @@ class MainActivity : ComponentActivity() {
 
                     // Roster en vivo de la sesión activa del docente (reporte de asistencia en vivo).
                     val rosterFlow = remember(teacherActiveSession?.id, teacherActiveSession?.courseId) {
-                        val s = teacherActiveSession
-                        if (s != null) courseRepository.getSessionRosterFlow(s.id, s.courseId)
+                        if (teacherActiveSession != null) courseRepository.getSessionRosterFlow(
+                            teacherActiveSession.id, teacherActiveSession.courseId)
                         else kotlinx.coroutines.flow.flowOf(emptyList())
                     }
                     val teacherRoster = rosterFlow.collectAsState(initial = emptyList()).value
@@ -204,6 +205,7 @@ class MainActivity : ComponentActivity() {
                                                 val role = try {
                                                     UserRole.valueOf((userDto?.role ?: "STUDENT").uppercase().trim())
                                                 } catch (e: Exception) {
+                                                    e.printStackTrace()
                                                     UserRole.STUDENT
                                                 }
                                                 currentUser = User(
@@ -236,22 +238,23 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToRoute = { route -> currentRoute = route },
                                 onNewSessionClick = { showNewSessionDialog = true },
                                 onOpenActiveQr = {
-                                    val active = teacherActiveSession
-                                    if (active != null) {
+                                    if (teacherActiveSession != null) {
                                         // Abre el QR de la sesión activa; renueva token para tener uno vigente.
                                         creatingSession = true
                                         scope.launch {
-                                            val rotated = courseRepository.rotateSessionToken(active.id, active.courseId)
-                                            teacherQrEnrolled = courseRepository.getEnrolledCount(active.courseId)
+                                            val rotated = courseRepository.rotateSessionToken(
+                                                teacherActiveSession.id, teacherActiveSession.courseId)
+                                            teacherQrEnrolled = courseRepository.getEnrolledCount(
+                                                teacherActiveSession.courseId)
                                             teacherQrSession = QrSession(
-                                                sessionId = active.id,
-                                                courseId = active.courseId,
-                                                courseName = active.courseName,
-                                                title = active.title,
+                                                sessionId = teacherActiveSession.id,
+                                                courseId = teacherActiveSession.courseId,
+                                                courseName = teacherActiveSession.courseName,
+                                                title = teacherActiveSession.title,
                                                 token = rotated?.token ?: "",
                                                 tokenExpiresAtMillis = rotated?.tokenExpiresAtMillis
                                                     ?: (System.currentTimeMillis() + 60_000),
-                                                startsAtMillis = active.startTime
+                                                startsAtMillis = teacherActiveSession.startTime
                                             )
                                             creatingSession = false
                                             currentRoute = NavRoutes.Sessions

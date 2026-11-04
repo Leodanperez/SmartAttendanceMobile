@@ -1,12 +1,15 @@
 package dev.leo.smartattendance.feature.auth
-import dev.leo.smartattendance.core.icons.LucideIcons
-import dev.leo.smartattendance.core.icons.*
-import dev.leo.smartattendance.ui.theme.AppTheme
 
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -40,6 +43,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,6 +53,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -66,6 +71,8 @@ import androidx.compose.ui.unit.sp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
+import dev.leo.smartattendance.core.icons.*
+import dev.leo.smartattendance.ui.theme.AppTheme
 import dev.leo.smartattendance.ui.theme.SmartAttendanceMobileTheme
 
 @Composable
@@ -153,22 +160,21 @@ fun LoginScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // AppTheme.colors.background Ambient Glow Accents
+        // Brillos ambientales de fondo
         Box(
             modifier = Modifier
-                .size(240.dp)
+                .size(260.dp)
                 .align(Alignment.TopStart)
-                .padding(top = 10.dp)
-                .blur(60.dp)
-                .background(AppTheme.colors.primaryFixed.copy(alpha = 0.35f), shape = CircleShape)
+                .blur(70.dp)
+                .background(AppTheme.colors.primaryFixed.copy(alpha = 0.55f), shape = CircleShape)
         )
         Box(
             modifier = Modifier
-                .size(220.dp)
+                .size(240.dp)
                 .align(Alignment.TopEnd)
-                .padding(top = 20.dp)
-                .blur(60.dp)
-                .background(AppTheme.colors.secondaryFixed.copy(alpha = 0.35f), shape = CircleShape)
+                .padding(top = 40.dp)
+                .blur(70.dp)
+                .background(AppTheme.colors.secondaryFixed.copy(alpha = 0.55f), shape = CircleShape)
         )
 
         Column(
@@ -177,57 +183,15 @@ fun LoginScreen(
                 .verticalScroll(rememberScrollState())
                 // imePadding + bringIntoView hacen que el campo enfocado suba sobre el teclado.
                 .imePadding()
-                .padding(horizontal = 16.dp, vertical = 24.dp),
+                .padding(horizontal = 20.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header Section
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // App Emblem Box
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.padding(bottom = 12.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(76.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(
-                            brush = Brush.linearGradient(
-                                colors = listOf(AppTheme.colors.primary, AppTheme.colors.primaryContainer)
-                            )
-                        )
-                        .padding(2.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(AppTheme.colors.primaryContainer.copy(alpha = 0.25f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = LucideIcons.Shield,
-                            contentDescription = "Escudo SmartAttendance",
-                            tint = Color.White,
-                            modifier = Modifier.size(38.dp)
-                        )
-                    }
-                }
+            BrandEmblem()
 
-                // Pulse indicator dot
-                Box(
-                    modifier = Modifier
-                        .size(14.dp)
-                        .align(Alignment.BottomEnd)
-                        .clip(CircleShape)
-                        .background(AppTheme.colors.secondaryContainer)
-                        .border(2.dp, MaterialTheme.colorScheme.background, CircleShape)
-                )
-            }
+            Spacer(modifier = Modifier.height(18.dp))
 
-            // Title
             Text(
                 text = "SmartAttendance",
                 style = MaterialTheme.typography.headlineMedium.copy(
@@ -238,17 +202,12 @@ fun LoginScreen(
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Institutional Verified Pill Badge
-            Surface(
-                shape = CircleShape,
-                color = AppTheme.colors.surfaceContainerHigh,
-                modifier = Modifier.padding(bottom = 8.dp)
-            ) {
+            Surface(shape = CircleShape, color = AppTheme.colors.primaryFixed) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
                 ) {
                     Icon(
                         imageVector = LucideIcons.ShieldCheck,
@@ -258,14 +217,15 @@ fun LoginScreen(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Acceso Institucional Seguro",
+                        text = "Acceso institucional seguro",
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                         color = AppTheme.colors.primary
                     )
                 }
             }
 
-            // Subtitle
+            Spacer(modifier = Modifier.height(12.dp))
+
             Text(
                 text = "Control y registro de asistencia académica en tiempo real con credencial digital y QR dinámico",
                 style = MaterialTheme.typography.bodyMedium,
@@ -276,91 +236,63 @@ fun LoginScreen(
                     .padding(horizontal = 12.dp)
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Central Form Card
+            // Tarjeta del formulario
             Surface(
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(28.dp),
                 color = AppTheme.colors.surfaceContainerLowest,
-                shadowElevation = 2.dp,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+                shadowElevation = 6.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(
-                    modifier = Modifier.padding(20.dp)
-                ) {
-                    // Unified Portal Banner
+                Column(modifier = Modifier.padding(22.dp)) {
+                    // Banner del portal único
                     Surface(
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(16.dp),
                         color = AppTheme.colors.surfaceContainerLow,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 16.dp)
+                            .padding(bottom = 20.dp)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
                             modifier = Modifier.padding(12.dp)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.weight(1f)
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(AppTheme.colors.primaryFixed),
+                                contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = LucideIcons.GraduationCap,
                                     contentDescription = "Portal",
                                     tint = AppTheme.colors.primary,
-                                    modifier = Modifier.size(22.dp)
+                                    modifier = Modifier.size(20.dp)
                                 )
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    Text(
-                                        text = "Portal Único Centralizado",
-                                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                                        color = AppTheme.colors.onSurface
-                                    )
-                                    Text(
-                                        text = "Estudiantes, Catedráticos y Administrativos",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = AppTheme.colors.onSurfaceVariant,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
                             }
-
-                            Spacer(modifier = Modifier.width(6.dp))
-
-                            Surface(
-                                shape = CircleShape,
-                                color = AppTheme.colors.primaryFixed
-                            ) {
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "SSO Activo",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = AppTheme.colors.primary,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                    text = "Portal único centralizado",
+                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                    color = AppTheme.colors.onSurface
+                                )
+                                Text(
+                                    text = "Estudiantes, catedráticos y administrativos",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = AppTheme.colors.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
                     }
 
-                    // Field 1: Institutional Email
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Correo Institucional",
-                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                            color = AppTheme.colors.onSurface
-                        )
-                        Text(
-                            text = "Requerido",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
-                            color = AppTheme.colors.primary
-                        )
-                    }
+                    // Correo
+                    FieldLabel(text = "Correo institucional", hint = "Requerido")
 
                     Spacer(modifier = Modifier.height(6.dp))
 
@@ -399,13 +331,8 @@ fun LoginScreen(
                             keyboardType = KeyboardType.Email,
                             imeAction = ImeAction.Next
                         ),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = AppTheme.colors.surfaceContainerLowest,
-                            unfocusedContainerColor = AppTheme.colors.surfaceContainerLow,
-                            focusedBorderColor = AppTheme.colors.primary.copy(alpha = 0.5f),
-                            unfocusedBorderColor = Color.Transparent
-                        ),
-                        shape = RoundedCornerShape(14.dp),
+                        colors = loginFieldColors(),
+                        shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -417,14 +344,10 @@ fun LoginScreen(
                         modifier = Modifier.padding(start = 4.dp)
                     )
 
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                    // Field 2: Password
-                    Text(
-                        text = "Contraseña",
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                        color = AppTheme.colors.onSurface
-                    )
+                    // Contraseña
+                    FieldLabel(text = "Contraseña")
 
                     Spacer(modifier = Modifier.height(6.dp))
 
@@ -465,19 +388,14 @@ fun LoginScreen(
                         keyboardActions = KeyboardActions(
                             onDone = { performLogin() }
                         ),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = AppTheme.colors.surfaceContainerLowest,
-                            unfocusedContainerColor = AppTheme.colors.surfaceContainerLow,
-                            focusedBorderColor = AppTheme.colors.primary.copy(alpha = 0.5f),
-                            unfocusedBorderColor = Color.Transparent
-                        ),
-                        shape = RoundedCornerShape(14.dp),
+                        colors = loginFieldColors(),
+                        shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Controls: Remember session & Password reset
+                    // Recordar sesión y recuperar contraseña
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -512,7 +430,7 @@ fun LoginScreen(
                         )
                     }
 
-                    // Dynamic Error / Success Messages
+                    // Mensajes de error / éxito
                     AnimatedVisibility(
                         visible = errorMessage != null,
                         enter = fadeIn(),
@@ -520,15 +438,15 @@ fun LoginScreen(
                     ) {
                         errorMessage?.let { msg ->
                             Surface(
-                                shape = RoundedCornerShape(12.dp),
+                                shape = RoundedCornerShape(14.dp),
                                 color = MaterialTheme.colorScheme.errorContainer,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(top = 12.dp)
+                                    .padding(top = 14.dp)
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(10.dp)
+                                    modifier = Modifier.padding(12.dp)
                                 ) {
                                     Icon(
                                         imageVector = LucideIcons.CircleAlert,
@@ -554,36 +472,47 @@ fun LoginScreen(
                     ) {
                         successMessage?.let { msg ->
                             Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = AppTheme.colors.surfaceContainerHigh,
+                                shape = RoundedCornerShape(14.dp),
+                                color = AppTheme.colors.successBg,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(top = 12.dp)
+                                    .padding(top = 14.dp)
                             ) {
-                                Text(
-                                    text = msg,
-                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-                                    color = AppTheme.colors.primary,
-                                    modifier = Modifier.padding(10.dp)
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(12.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = LucideIcons.CircleCheck,
+                                        contentDescription = null,
+                                        tint = AppTheme.colors.successText,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = msg,
+                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                                        color = AppTheme.colors.successText
+                                    )
+                                }
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
 
-                    // AppTheme.colors.primary Action Button
+                    // Botón principal
                     Button(
                         onClick = { performLogin() },
                         enabled = !isLoading,
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = AppTheme.colors.primary,
                             contentColor = Color.White
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp)
+                            .height(54.dp)
                     ) {
                         if (isLoading) {
                             CircularProgressIndicator(
@@ -604,7 +533,7 @@ fun LoginScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Iniciar Sesión",
+                                text = "Iniciar sesión",
                                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -628,25 +557,25 @@ fun LoginScreen(
                     .clickable {
                         Toast.makeText(context, "Soporte TI: soporte@universidad.edu.pe", Toast.LENGTH_LONG).show()
                     }
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .padding(horizontal = 8.dp, vertical = 6.dp)
             ) {
                 Icon(
                     imageVector = LucideIcons.CircleHelp,
                     contentDescription = "Soporte",
-                    tint = AppTheme.colors.outline,
+                    tint = AppTheme.colors.onSurfaceVariant,
                     modifier = Modifier.size(14.dp)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = "Centro de ayuda institucional y soporte TI",
                     style = MaterialTheme.typography.labelSmall,
-                    color = AppTheme.colors.outline
+                    color = AppTheme.colors.onSurfaceVariant
                 )
             }
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Institutional Security & Compliance Footer
+            // Pie de seguridad
             Surface(
                 shape = CircleShape,
                 color = AppTheme.colors.surfaceContainerLow,
@@ -664,7 +593,7 @@ fun LoginScreen(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Cifrado TLS 1.3 • Conexión Institucional Protegida",
+                        text = "Cifrado TLS 1.3 • Conexión institucional protegida",
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
                         color = AppTheme.colors.primary
                     )
@@ -681,6 +610,98 @@ fun LoginScreen(
         }
     }
 }
+
+// ─────────────────────────────────────────────────────────────
+// Componentes
+// ─────────────────────────────────────────────────────────────
+
+@Composable
+private fun BrandEmblem() {
+    val transition = rememberInfiniteTransition(label = "emblem")
+    val dotAlpha by transition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(1100), RepeatMode.Reverse),
+        label = "dotAlpha"
+    )
+
+    Box(contentAlignment = Alignment.Center) {
+        Box(
+            modifier = Modifier
+                .size(88.dp)
+                .shadow(
+                    elevation = 14.dp,
+                    shape = RoundedCornerShape(28.dp),
+                    ambientColor = AppTheme.colors.primary.copy(alpha = 0.3f),
+                    spotColor = AppTheme.colors.primary.copy(alpha = 0.45f)
+                )
+                .clip(RoundedCornerShape(28.dp))
+                .background(
+                    Brush.linearGradient(
+                        listOf(AppTheme.colors.primary, AppTheme.colors.primaryContainer)
+                    )
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color.White.copy(alpha = 0.16f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = LucideIcons.Shield,
+                    contentDescription = "Escudo SmartAttendance",
+                    tint = Color.White,
+                    modifier = Modifier.size(36.dp)
+                )
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .size(18.dp)
+                .align(Alignment.BottomEnd)
+                .clip(CircleShape)
+                .background(AppTheme.colors.secondaryContainer.copy(alpha = dotAlpha))
+                .border(3.dp, MaterialTheme.colorScheme.background, CircleShape)
+        )
+    }
+}
+
+@Composable
+private fun FieldLabel(text: String, hint: String? = null) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+            color = AppTheme.colors.onSurface
+        )
+        if (hint != null) {
+            Text(
+                text = hint,
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                color = AppTheme.colors.primary
+            )
+        }
+    }
+}
+
+@Composable
+private fun loginFieldColors(): TextFieldColors = OutlinedTextFieldDefaults.colors(
+    focusedContainerColor = AppTheme.colors.surfaceContainerLowest,
+    unfocusedContainerColor = AppTheme.colors.surfaceContainerLow,
+    focusedBorderColor = AppTheme.colors.primary,
+    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+    focusedTextColor = AppTheme.colors.onSurface,
+    unfocusedTextColor = AppTheme.colors.onSurface,
+    cursorColor = AppTheme.colors.primary
+)
 
 @Preview(showBackground = true)
 @Composable

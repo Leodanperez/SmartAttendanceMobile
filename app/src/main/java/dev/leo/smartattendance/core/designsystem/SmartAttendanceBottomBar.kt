@@ -139,9 +139,6 @@ fun getNavigationTabsForRole(role: UserRole): List<NavigationTabItem> {
         )
     }
 }
-
-val DefaultNavigationTabs = getNavigationTabsForRole(UserRole.TEACHER)
-
 /**
  * Barra de navegación flotante (estilo "pill" tipo iOS): una tarjeta redondeada separada de los
  * bordes, con sombra, y la pestaña activa resaltada con una píldora de fondo.

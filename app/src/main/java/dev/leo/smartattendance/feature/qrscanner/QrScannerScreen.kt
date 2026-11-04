@@ -1,12 +1,8 @@
 package dev.leo.smartattendance.feature.qrscanner
-import dev.leo.smartattendance.core.icons.LucideIcons
-import dev.leo.smartattendance.core.icons.*
-import dev.leo.smartattendance.ui.theme.AppTheme
 
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -23,9 +19,9 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,9 +40,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -61,13 +59,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -83,6 +83,8 @@ import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import dev.leo.smartattendance.core.designsystem.SmartAttendanceHeader
+import dev.leo.smartattendance.core.icons.*
+import dev.leo.smartattendance.ui.theme.AppTheme
 import dev.leo.smartattendance.ui.theme.SmartAttendanceMobileTheme
 import org.json.JSONObject
 import java.text.SimpleDateFormat
@@ -154,6 +156,8 @@ sealed interface AttendanceUiState {
     data class Error(val message: String) : AttendanceUiState
 }
 
+private val ScannerBg = Color(0xFF243143)
+
 @Composable
 fun QrScannerScreen(
     activeCourseName: String = "Desarrollo de Sistemas",
@@ -204,10 +208,15 @@ fun QrScannerScreen(
     }
 
     // Registro terminado:
-    //  - Éxito: NO se reactiva el escáner (evita registros infinitos). Se cierra solo tras 2 s.
+    //  - Éxito: NO se reactiva el escáner (evita registros infinitos).
     //  - Error: se libera para reintentar.
-    // Mientras hay un resultado en pantalla, el escáner no vuelve a leer.
     // El cierre lo decide el usuario al tocar "Aceptar" en cada diálogo (abajo).
+
+    val toggleFlash = {
+        isFlashOn = !isFlashOn
+        activeCamera?.cameraControl?.enableTorch(isFlashOn)
+        Unit
+    }
 
     Scaffold(
         topBar = {
@@ -218,7 +227,8 @@ fun QrScannerScreen(
                 showNotification = false,
                 onProfileClick = {}
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -227,13 +237,13 @@ fun QrScannerScreen(
                 .verticalScroll(rememberScrollState())
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            // Camera Viewport & Scrim Container
+            // ── Visor de cámara ─────────────────────────────────
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(480.dp)
-                    .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
-                    .background(Color(0xFF243143))
+                    .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
+                    .background(ScannerBg)
             ) {
                 if (hasCameraPermission) {
                     CameraPreviewView(
@@ -251,22 +261,22 @@ fun QrScannerScreen(
                         }
                     )
 
-                    // Scrim Overlay
+                    // Scrim
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .background(
-                                brush = Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color(0xFF243143).copy(alpha = 0.85f),
-                                        Color(0xFF243143).copy(alpha = 0.55f),
-                                        Color(0xFF243143).copy(alpha = 0.90f)
+                                Brush.verticalGradient(
+                                    listOf(
+                                        ScannerBg.copy(alpha = 0.85f),
+                                        ScannerBg.copy(alpha = 0.45f),
+                                        ScannerBg.copy(alpha = 0.92f)
                                     )
                                 )
                             )
                     )
 
-                    // In-View Overlay Controls
+                    // Controles superiores
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -275,24 +285,13 @@ fun QrScannerScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        IconButton(
-                            onClick = onNavigateBack,
-                            modifier = Modifier
-                                .size(42.dp)
-                                .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.15f))
-                        ) {
-                            Icon(
-                                imageVector = LucideIcons.X,
-                                contentDescription = "Cerrar",
-                                tint = Color.White
-                            )
-                        }
+                        GlassIconButton(
+                            icon = LucideIcons.X,
+                            description = "Cerrar",
+                            onClick = onNavigateBack
+                        )
 
-                        Surface(
-                            shape = CircleShape,
-                            color = Color.White.copy(alpha = 0.15f)
-                        ) {
+                        Surface(shape = CircleShape, color = Color.White.copy(alpha = 0.15f)) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
@@ -305,136 +304,69 @@ fun QrScannerScreen(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "Visor en Vivo",
+                                    text = "Visor en vivo",
                                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                                     color = Color.White
                                 )
                             }
                         }
 
-                        IconButton(
-                            onClick = {
-                                isFlashOn = !isFlashOn
-                                activeCamera?.cameraControl?.enableTorch(isFlashOn)
-                            },
-                            modifier = Modifier
-                                .size(42.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    if (isFlashOn) AppTheme.colors.secondaryContainer else Color.White.copy(alpha = 0.15f)
-                                )
-                        ) {
-                            Icon(
-                                imageVector = if (isFlashOn) LucideIcons.Flashlight else LucideIcons.FlashlightOff,
-                                contentDescription = "Linterna",
-                                tint = if (isFlashOn) AppTheme.colors.onSurface else Color.White
-                            )
-                        }
+                        GlassIconButton(
+                            icon = if (isFlashOn) LucideIcons.Flashlight else LucideIcons.FlashlightOff,
+                            description = "Linterna",
+                            active = isFlashOn,
+                            onClick = { toggleFlash() }
+                        )
                     }
 
-                    // Scanner Mask & Animated Reticle
+                    // Retícula animada
                     val infiniteTransition = rememberInfiniteTransition(label = "laser")
-                    val laserY by infiniteTransition.animateFloat(
-                        initialValue = 0f,
-                        targetValue = 200f,
+                    val laserFraction by infiniteTransition.animateFloat(
+                        initialValue = 0.05f,
+                        targetValue = 0.95f,
                         animationSpec = infiniteRepeatable(
                             animation = tween(2200, easing = FastOutSlowInEasing),
                             repeatMode = RepeatMode.Reverse
                         ),
                         label = "laserY"
                     )
-
-                    // Color leído en contexto composable para usarlo dentro del Canvas.
                     val reticleColor = AppTheme.colors.secondaryContainer
+
                     Box(
                         modifier = Modifier
-                            .size(220.dp)
+                            .size(230.dp)
                             .align(Alignment.Center)
                     ) {
-                        // Corner Brackets
                         Canvas(modifier = Modifier.fillMaxSize()) {
-                            val strokeWidth = 3.5.dp.toPx()
-                            val bracketSize = 28.dp.toPx()
-                            val cornerRadius = 16.dp.toPx()
-                            val bracketColor = reticleColor
-
-                            // Top-Left
-                            drawArc(
-                                color = bracketColor,
-                                startAngle = 180f,
-                                sweepAngle = 90f,
-                                useCenter = false,
-                                topLeft = Offset.Zero,
-                                size = Size(cornerRadius * 2, cornerRadius * 2),
-                                style = Stroke(width = strokeWidth)
+                            drawBrackets(
+                                color = reticleColor,
+                                strokeWidth = 4.dp.toPx(),
+                                length = 34.dp.toPx(),
+                                radius = 18.dp.toPx()
                             )
-                            drawLine(bracketColor, Offset(cornerRadius, 0f), Offset(bracketSize, 0f), strokeWidth)
-                            drawLine(bracketColor, Offset(0f, cornerRadius), Offset(0f, bracketSize), strokeWidth)
-
-                            // Top-Right
-                            drawArc(
-                                color = bracketColor,
-                                startAngle = 270f,
-                                sweepAngle = 90f,
-                                useCenter = false,
-                                topLeft = Offset(size.width - cornerRadius * 2, 0f),
-                                size = Size(cornerRadius * 2, cornerRadius * 2),
-                                style = Stroke(width = strokeWidth)
-                            )
-                            drawLine(bracketColor, Offset(size.width - bracketSize, 0f), Offset(size.width - cornerRadius, 0f), strokeWidth)
-                            drawLine(bracketColor, Offset(size.width, cornerRadius), Offset(size.width, bracketSize), strokeWidth)
-
-                            // Bottom-Left
-                            drawArc(
-                                color = bracketColor,
-                                startAngle = 90f,
-                                sweepAngle = 90f,
-                                useCenter = false,
-                                topLeft = Offset(0f, size.height - cornerRadius * 2),
-                                size = Size(cornerRadius * 2, cornerRadius * 2),
-                                style = Stroke(width = strokeWidth)
-                            )
-                            drawLine(bracketColor, Offset(0f, size.height - bracketSize), Offset(0f, size.height - cornerRadius), strokeWidth)
-                            drawLine(bracketColor, Offset(cornerRadius, size.height), Offset(bracketSize, size.height), strokeWidth)
-
-                            // Bottom-Right
-                            drawArc(
-                                color = bracketColor,
-                                startAngle = 0f,
-                                sweepAngle = 90f,
-                                useCenter = false,
-                                topLeft = Offset(size.width - cornerRadius * 2, size.height - cornerRadius * 2),
-                                size = Size(cornerRadius * 2, cornerRadius * 2),
-                                style = Stroke(width = strokeWidth)
-                            )
-                            drawLine(bracketColor, Offset(size.width - bracketSize, size.height), Offset(size.width - cornerRadius, size.height), strokeWidth)
-                            drawLine(bracketColor, Offset(size.width, size.height - bracketSize), Offset(size.width, size.height - cornerRadius), strokeWidth)
-
-                            // Laser Sweep Line
+                            val y = size.height * laserFraction
                             drawLine(
-                                color = reticleColor.copy(alpha = 0.85f),
-                                start = Offset(12.dp.toPx(), laserY.dp.toPx()),
-                                end = Offset(size.width - 12.dp.toPx(), laserY.dp.toPx()),
-                                strokeWidth = 2.5.dp.toPx()
+                                brush = Brush.horizontalGradient(
+                                    listOf(
+                                        Color.Transparent,
+                                        reticleColor.copy(alpha = 0.95f),
+                                        Color.Transparent
+                                    )
+                                ),
+                                start = Offset(8.dp.toPx(), y),
+                                end = Offset(size.width - 8.dp.toPx(), y),
+                                strokeWidth = 3.dp.toPx(),
+                                cap = StrokeCap.Round
                             )
                         }
-
-                        Icon(
-                            imageVector = LucideIcons.ScanLine,
-                            contentDescription = "Target",
-                            tint = AppTheme.colors.secondaryContainer.copy(alpha = 0.25f),
-                            modifier = Modifier
-                                .size(48.dp)
-                                .align(Alignment.Center)
-                        )
                     }
 
-                    // Scrim Bottom Status & Geofence Chips
+                    // Texto inferior + chip de seguridad
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
-                            .padding(bottom = 16.dp, start = 16.dp, end = 16.dp)
+                            .padding(bottom = 20.dp, start = 20.dp, end = 20.dp)
                     ) {
                         Text(
                             text = "Apunta la cámara al código QR dinámico proyectado en el aula",
@@ -445,53 +377,43 @@ fun QrScannerScreen(
 
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = Color.White.copy(alpha = 0.18f)
+                        Surface(shape = CircleShape, color = Color.White.copy(alpha = 0.16f)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = LucideIcons.MapPin,
-                                        contentDescription = "GPS",
-                                        tint = AppTheme.colors.secondaryContainer,
-                                        modifier = Modifier.size(12.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = "Aula B-204 (GPS OK)",
-                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                        color = Color.White
-                                    )
-                                }
+                                Icon(
+                                    imageVector = LucideIcons.ShieldCheck,
+                                    contentDescription = "Seguridad",
+                                    tint = AppTheme.colors.secondaryContainer,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "QR dinámico • validación segura",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                    color = Color.White
+                                )
                             }
+                        }
+                    }
 
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = Color.White.copy(alpha = 0.18f)
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = LucideIcons.ShieldCheck,
-                                        contentDescription = "Seguridad",
-                                        tint = AppTheme.colors.secondaryContainer,
-                                        modifier = Modifier.size(12.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = "Anti-rebote • sa1.*",
-                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                        color = Color.White
-                                    )
-                                }
+                    // Registrando…
+                    if (registrationState is AttendanceUiState.Loading) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.6f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                CircularProgressIndicator(color = Color.White, strokeWidth = 3.dp)
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = "Registrando asistencia…",
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                    color = Color.White
+                                )
                             }
                         }
                     }
@@ -503,6 +425,21 @@ fun QrScannerScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = LucideIcons.ScanLine,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(30.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
                         Text(
                             text = "Se requiere permiso de cámara para escanear el QR de asistencia",
                             color = Color.White,
@@ -512,24 +449,102 @@ fun QrScannerScreen(
                         )
                         Button(
                             onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) },
-                            colors = ButtonDefaults.buttonColors(containerColor = AppTheme.colors.primary)
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.White,
+                                contentColor = AppTheme.colors.primary
+                            )
                         ) {
-                            Text("Conceder Permiso", color = Color.White)
+                            Text("Conceder permiso", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
             }
 
-            // Information & Direct Action Deck
+            // ── Panel inferior ──────────────────────────────────
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Instant Auto-Submit Information Notice
+                // Contexto de la sesión
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = AppTheme.colors.surfaceContainerLowest,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+                    shadowElevation = 1.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(
+                                    Brush.linearGradient(
+                                        listOf(AppTheme.colors.primary, AppTheme.colors.primaryContainer)
+                                    )
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = courseInitials(activeCourseName),
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                color = Color.White
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = activeCourseName,
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = AppTheme.colors.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "$activeTeacherName • Sesión activa",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = AppTheme.colors.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Surface(shape = CircleShape, color = AppTheme.colors.successBg) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(AppTheme.colors.successText)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "EN VIVO",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = AppTheme.colors.successText
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Aviso de envío automático
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    color = AppTheme.colors.surfaceContainerLow,
+                    color = AppTheme.colors.secondaryFixed.copy(alpha = 0.6f),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -538,7 +553,7 @@ fun QrScannerScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(38.dp)
+                                .size(36.dp)
                                 .clip(CircleShape)
                                 .background(AppTheme.colors.secondaryFixed),
                             contentAlignment = Alignment.Center
@@ -547,7 +562,7 @@ fun QrScannerScreen(
                                 imageVector = LucideIcons.Zap,
                                 contentDescription = "Rápido",
                                 tint = AppTheme.colors.secondary,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(18.dp)
                             )
                         }
 
@@ -560,159 +575,64 @@ fun QrScannerScreen(
                                 color = AppTheme.colors.onSurface
                             )
                             Text(
-                                text = "No necesitas tocar botones; registra tu asistencia al detectar.",
+                                text = "No necesitas tocar botones; tu asistencia se registra al detectar el código.",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = AppTheme.colors.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                color = AppTheme.colors.onSurfaceVariant
                             )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Classroom Session Context Card
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = AppTheme.colors.surfaceContainerLow,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                // Acciones
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Button(
+                        onClick = { toggleFlash() },
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = AppTheme.colors.primaryContainer),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(50.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(38.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(AppTheme.colors.primaryContainer),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "CS3",
-                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                                    color = Color.White
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.width(10.dp))
-
-                            Column {
-                                Text(
-                                    text = activeCourseName,
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = AppTheme.colors.onSurface,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Text(
-                                    text = "$activeTeacherName • Sesión Activa",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = AppTheme.colors.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        Surface(
-                            shape = CircleShape,
-                            color = AppTheme.colors.surfaceContainerLowest
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(6.dp)
-                                        .clip(CircleShape)
-                                        .background(AppTheme.colors.secondary)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "EN VIVO",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = AppTheme.colors.onSurface
-                                )
-                            }
-                        }
+                        Icon(
+                            imageVector = if (isFlashOn) LucideIcons.FlashlightOff else LucideIcons.Flashlight,
+                            contentDescription = "Flash",
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (isFlashOn) "Apagar linterna" else "Linterna",
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                            color = Color.White
+                        )
                     }
-                }
 
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Flashlight Toggle AppTheme.colors.primary Pill Button
-                Button(
-                    onClick = {
-                        isFlashOn = !isFlashOn
-                        activeCamera?.cameraControl?.enableTorch(isFlashOn)
-                    },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AppTheme.colors.primaryContainer),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                ) {
-                    Icon(
-                        imageVector = if (isFlashOn) LucideIcons.FlashlightOff else LucideIcons.Flashlight,
-                        contentDescription = "Flash",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = if (isFlashOn) "Desactivar Linterna" else "Activar Linterna del Aula",
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                        color = Color.White
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Manual Backup Code / Assistance Action
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = AppTheme.colors.surfaceContainerHigh,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .clickable { showManualCodeDialog = true }
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
+                    OutlinedButton(
+                        onClick = { showManualCodeDialog = true },
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(50.dp)
                     ) {
                         Icon(
                             imageVector = LucideIcons.Keyboard,
                             contentDescription = "Teclado",
                             tint = AppTheme.colors.primary,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Ingresar código de respaldo o ayuda",
+                            text = "Código manual",
                             style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                             color = AppTheme.colors.primary
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Security Footnote
+                // Nota de seguridad
                 Row(
                     verticalAlignment = Alignment.Top,
-                    modifier = Modifier.padding(horizontal = 4.dp)
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
                 ) {
                     Icon(
                         imageVector = LucideIcons.ShieldCheck,
@@ -731,11 +651,10 @@ fun QrScannerScreen(
                 }
             }
 
-            // A11 --- Resultado real del registro
-            when (val state = registrationState) {
+            // Resultado real del registro
+            when (registrationState) {
                 is AttendanceUiState.Success -> AttendanceResultDialog(
-                    payload = state.payload,
-                    // Aceptar cierra el escáner (o se cierra solo a los 2 s).
+                    payload = registrationState.payload,
                     onDismiss = {
                         onResultDismissed()
                         onNavigateBack()
@@ -743,14 +662,13 @@ fun QrScannerScreen(
                 )
                 is AttendanceUiState.AlreadyRegistered -> AttendanceInfoDialog(
                     message = "Ya registraste tu asistencia en esta sesión.",
-                    // Ya está registrado: Aceptar cierra el escáner.
                     onDismiss = {
                         onResultDismissed()
                         onNavigateBack()
                     }
                 )
                 is AttendanceUiState.Error -> AttendanceErrorDialog(
-                    message = state.message,
+                    message = registrationState.message,
                     // Error reintentable: Aceptar cierra el diálogo y libera el escáner.
                     onDismiss = {
                         onResultDismissed()
@@ -769,7 +687,6 @@ fun QrScannerScreen(
                 )
             }
 
-            // Manual Code Prompt Dialog
             if (showManualCodeDialog) {
                 ManualCodeDialog(
                     onDismiss = { showManualCodeDialog = false },
@@ -782,13 +699,75 @@ fun QrScannerScreen(
     }
 }
 
+// ─────────────────────────────────────────────────────────────
+// Helpers visuales
+// ─────────────────────────────────────────────────────────────
+
+private fun courseInitials(name: String): String =
+    name.split(" ")
+        .filter { it.length > 2 }
+        .take(2)
+        .mapNotNull { it.firstOrNull() }
+        .joinToString("")
+        .uppercase()
+        .ifEmpty { name.take(2).uppercase().ifEmpty { "CU" } }
+
+@Composable
+private fun GlassIconButton(
+    icon: ImageVector,
+    description: String,
+    onClick: () -> Unit,
+    active: Boolean = false
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier
+            .size(42.dp)
+            .clip(CircleShape)
+            .background(
+                if (active) AppTheme.colors.secondaryContainer else Color.White.copy(alpha = 0.15f)
+            )
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = description,
+            tint = if (active) AppTheme.colors.onSurface else Color.White
+        )
+    }
+}
+
+/** Dibuja las cuatro esquinas redondeadas de la retícula. */
+private fun DrawScope.drawBrackets(color: Color, strokeWidth: Float, length: Float, radius: Float) {
+    val w = size.width
+    val h = size.height
+    val style = Stroke(width = strokeWidth, cap = StrokeCap.Round, join = StrokeJoin.Round)
+
+    fun bracket(x: Float, y: Float, dx: Float, dy: Float) {
+        val path = Path().apply {
+            moveTo(x, y + dy * length)
+            lineTo(x, y + dy * radius)
+            quadraticBezierTo(x, y, x + dx * radius, y)
+            lineTo(x + dx * length, y)
+        }
+        drawPath(path = path, color = color, style = style)
+    }
+
+    bracket(0f, 0f, 1f, 1f)
+    bracket(w, 0f, -1f, 1f)
+    bracket(0f, h, 1f, -1f)
+    bracket(w, h, -1f, -1f)
+}
+
+// ─────────────────────────────────────────────────────────────
+// Cámara
+// ─────────────────────────────────────────────────────────────
+
 @Composable
 fun CameraPreviewView(
     isFlashOn: Boolean,
     onCameraBound: (Camera) -> Unit,
     onQrScanned: (String) -> Unit
 ) {
-    val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
     val isInspection = androidx.compose.ui.platform.LocalInspectionMode.current
@@ -811,7 +790,7 @@ fun CameraPreviewView(
                 cameraProviderFuture.addListener({
                     val cameraProvider = cameraProviderFuture.get()
                     val preview = CameraPreview.Builder().build().also {
-                        it.setSurfaceProvider(previewView.surfaceProvider)
+                        it.surfaceProvider = previewView.surfaceProvider
                     }
 
                     val barcodeScanner = BarcodeScanning.getClient()
@@ -871,6 +850,68 @@ private fun processImageProxy(
     }
 }
 
+// ─────────────────────────────────────────────────────────────
+// Diálogos
+// ─────────────────────────────────────────────────────────────
+
+@Composable
+private fun ResultDialog(
+    icon: ImageVector,
+    iconDescription: String,
+    iconBg: Color,
+    iconTint: Color,
+    title: String,
+    confirmText: String,
+    onDismiss: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(24.dp),
+        containerColor = AppTheme.colors.surfaceContainerLowest,
+        titleContentColor = AppTheme.colors.onSurface,
+        textContentColor = AppTheme.colors.onSurface,
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(iconBg),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = iconDescription,
+                    tint = iconTint,
+                    modifier = Modifier.size(30.dp)
+                )
+            }
+        },
+        title = {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = AppTheme.colors.onSurface,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        text = { content() },
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(containerColor = AppTheme.colors.primary),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(46.dp)
+            ) {
+                Text(confirmText, color = Color.White, fontWeight = FontWeight.Bold)
+            }
+        }
+    )
+}
+
 @Composable
 fun AttendanceResultDialog(
     payload: QrPayload,
@@ -878,74 +919,50 @@ fun AttendanceResultDialog(
 ) {
     val currentTime = SimpleDateFormat("HH:mm:ss - dd/MM/yyyy", Locale.ROOT).format(Date())
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = AppTheme.colors.surfaceContainerLowest,
-        titleContentColor = AppTheme.colors.onSurface,
-        textContentColor = AppTheme.colors.onSurface,
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(AppTheme.colors.successBg),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = LucideIcons.CircleCheck,
-                        contentDescription = "Éxito",
-                        tint = AppTheme.colors.successText,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(10.dp))
+    ResultDialog(
+        icon = LucideIcons.CircleCheck,
+        iconDescription = "Éxito",
+        iconBg = AppTheme.colors.successBg,
+        iconTint = AppTheme.colors.successText,
+        title = "Asistencia registrada",
+        confirmText = "Aceptar",
+        onDismiss = onDismiss
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = payload.courseName,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                color = AppTheme.colors.onSurface,
+                textAlign = TextAlign.Center
+            )
+            if (payload.title.isNotBlank()) {
                 Text(
-                    text = "Asistencia Registrada",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = AppTheme.colors.onSurface
-                )
-            }
-        },
-        text = {
-            Column {
-                Text(
-                    text = "Curso: ${payload.courseName}",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                    color = AppTheme.colors.onSurface
-                )
-                if (payload.title.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Sesión: ${payload.title}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = AppTheme.colors.onSurface
-                    )
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Estado: PRESENTE (Verificado)",
+                    text = payload.title,
                     style = MaterialTheme.typography.bodySmall,
-                    color = AppTheme.colors.successText
+                    color = AppTheme.colors.onSurfaceVariant,
+                    textAlign = TextAlign.Center
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Surface(shape = CircleShape, color = AppTheme.colors.successBg) {
                 Text(
-                    text = "Fecha y hora: $currentTime",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
+                    text = "PRESENTE · Verificado",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    color = AppTheme.colors.successText,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
                 )
             }
-        },
-        confirmButton = {
-            Button(
-                onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(containerColor = AppTheme.colors.primary),
-                shape = RoundedCornerShape(10.dp)
-            ) {
-                Text("Aceptar", color = Color.White)
-            }
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = currentTime,
+                style = MaterialTheme.typography.bodySmall,
+                color = AppTheme.colors.onSurfaceVariant
+            )
         }
-    )
+    }
 }
 
 @Composable
@@ -953,48 +970,23 @@ fun AttendanceErrorDialog(
     message: String,
     onDismiss: () -> Unit
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = AppTheme.colors.surfaceContainerLowest,
-        titleContentColor = AppTheme.colors.onSurface,
-        textContentColor = AppTheme.colors.onSurface,
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(AppTheme.colors.errorContainer),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = LucideIcons.X,
-                        contentDescription = "Error",
-                        tint = AppTheme.colors.error,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = "No se registró",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = AppTheme.colors.onSurface
-                )
-            }
-        },
-        text = {
-            Text(text = message, style = MaterialTheme.typography.bodyMedium, color = AppTheme.colors.onSurface)
-        },
-        confirmButton = {
-            Button(
-                onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(containerColor = AppTheme.colors.primary),
-                shape = RoundedCornerShape(10.dp)
-            ) {
-                Text("Entendido", color = Color.White)
-            }
-        }
-    )
+    ResultDialog(
+        icon = LucideIcons.X,
+        iconDescription = "Error",
+        iconBg = AppTheme.colors.errorContainer,
+        iconTint = AppTheme.colors.error,
+        title = "No se registró",
+        confirmText = "Entendido",
+        onDismiss = onDismiss
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = AppTheme.colors.onSurface,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
 }
 
 @Composable
@@ -1002,48 +994,23 @@ fun AttendanceInfoDialog(
     message: String,
     onDismiss: () -> Unit
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = AppTheme.colors.surfaceContainerLowest,
-        titleContentColor = AppTheme.colors.onSurface,
-        textContentColor = AppTheme.colors.onSurface,
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(AppTheme.colors.primaryContainer.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = LucideIcons.CircleCheck,
-                        contentDescription = "Información",
-                        tint = AppTheme.colors.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = "Asistencia ya registrada",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = AppTheme.colors.onSurface
-                )
-            }
-        },
-        text = {
-            Text(text = message, style = MaterialTheme.typography.bodyMedium, color = AppTheme.colors.onSurface)
-        },
-        confirmButton = {
-            Button(
-                onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(containerColor = AppTheme.colors.primary),
-                shape = RoundedCornerShape(10.dp)
-            ) {
-                Text("Aceptar", color = Color.White)
-            }
-        }
-    )
+    ResultDialog(
+        icon = LucideIcons.CircleCheck,
+        iconDescription = "Información",
+        iconBg = AppTheme.colors.primaryFixed,
+        iconTint = AppTheme.colors.primary,
+        title = "Asistencia ya registrada",
+        confirmText = "Aceptar",
+        onDismiss = onDismiss
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = AppTheme.colors.onSurface,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
 }
 
 @Composable
@@ -1056,9 +1023,11 @@ fun ManualCodeDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(24.dp),
+        containerColor = AppTheme.colors.surfaceContainerLowest,
         title = {
             Text(
-                text = "Código de Respaldo",
+                text = "Código de respaldo",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = AppTheme.colors.onSurface
             )
@@ -1067,7 +1036,8 @@ fun ManualCodeDialog(
             Column {
                 Text(
                     text = "Ingresa el código alfanumérico temporal mostrado por el docente (Ej. SA1-9482):",
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AppTheme.colors.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 OutlinedTextField(
@@ -1076,7 +1046,7 @@ fun ManualCodeDialog(
                     placeholder = { Text("Ej: SA1-9482") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(14.dp)
                 )
             }
         },
@@ -1092,9 +1062,9 @@ fun ManualCodeDialog(
                     }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = AppTheme.colors.primary),
-                shape = RoundedCornerShape(10.dp)
+                shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Validar", color = Color.White)
+                Text("Validar", color = Color.White, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {

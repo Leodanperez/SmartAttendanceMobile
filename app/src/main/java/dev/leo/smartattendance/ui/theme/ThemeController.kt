@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.content.edit
 
 /** Preferencia de tema elegida por el usuario. */
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
@@ -20,7 +21,7 @@ class ThemeController(context: Context) {
 
     fun updateMode(newMode: ThemeMode) {
         mode = newMode
-        prefs.edit().putString(KEY, newMode.name).apply()
+        prefs.edit { putString(KEY, newMode.name) }
     }
 
     private fun readMode(): ThemeMode =

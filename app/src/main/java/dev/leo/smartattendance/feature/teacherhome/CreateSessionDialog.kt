@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -169,7 +170,7 @@ fun CreateSessionDialog(
                         onValueChange = { durationText = it.filter { c -> c.isDigit() } },
                         label = { Text("Duración (min)") },
                         singleLine = true,
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Number),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         colors = fieldColors,
                         modifier = Modifier.weight(1f)
                     )
@@ -178,7 +179,7 @@ fun CreateSessionDialog(
                         onValueChange = { lateAfterText = it.filter { c -> c.isDigit() } },
                         label = { Text("Tardanza tras (min)") },
                         singleLine = true,
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Number),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         colors = fieldColors,
                         modifier = Modifier.weight(1f)
                     )
@@ -233,7 +234,7 @@ fun CreateSessionDialog(
                                 t.isEmpty() -> error = "Ingresa el título o tema."
                                 duration == null || duration < 5 || duration > 600 ->
                                     error = "La duración debe estar entre 5 y 600 minutos."
-                                late != null && (late < 0 || late > 600) ->
+                                late != null && (late !in 0..600) ->
                                     error = "La tardanza debe estar entre 0 y 600 minutos."
                                 late != null && late > duration ->
                                     error = "La tardanza no puede superar la duración."
