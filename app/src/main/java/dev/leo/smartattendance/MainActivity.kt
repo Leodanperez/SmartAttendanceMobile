@@ -30,7 +30,6 @@ import dev.leo.smartattendance.data.repository.CourseRepositoryImpl
 import dev.leo.smartattendance.domain.model.User
 import dev.leo.smartattendance.domain.model.UserRole
 import dev.leo.smartattendance.feature.auth.LoginScreen
-import dev.leo.smartattendance.feature.auth.SignUpScreen
 import dev.leo.smartattendance.domain.model.Course
 import dev.leo.smartattendance.domain.model.CourseSessionSummary
 import dev.leo.smartattendance.domain.model.QrSession
@@ -211,22 +210,6 @@ class MainActivity : ComponentActivity() {
                                                 }
                                             }
                                         }
-                                    },
-                                    onNavigateToRegister = {
-                                        currentRoute = NavRoutes.Register
-                                    }
-                                )
-                            }
-                        }
-
-                        NavRoutes.Register -> {
-                            Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                                SignUpScreen(
-                                    auth = auth,
-                                    db = db,
-                                    modifier = Modifier.padding(innerPadding),
-                                    onNavigateToLogin = {
-                                        currentRoute = NavRoutes.Login
                                     }
                                 )
                             }

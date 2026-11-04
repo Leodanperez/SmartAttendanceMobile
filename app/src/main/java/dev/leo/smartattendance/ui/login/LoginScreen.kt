@@ -9,13 +9,11 @@ import dev.leo.smartattendance.feature.auth.LoginScreen as FeatureLoginScreen
 fun LoginScreen(
     auth: FirebaseAuth?,
     modifier: Modifier = Modifier,
-    onLoginSuccess: () -> Unit = {},
-    onNavigateToRegister: () -> Unit = {}
+    onLoginSuccess: () -> Unit = {}
 ) {
     FeatureLoginScreen(
         auth = auth,
         modifier = modifier,
-        onLoginSuccess = onLoginSuccess,
-        onNavigateToRegister = onNavigateToRegister
+        onLoginSuccess = onLoginSuccess
     )
 }

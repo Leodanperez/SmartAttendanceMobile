@@ -84,8 +84,7 @@ import dev.leo.smartattendance.ui.theme.SmartAttendanceMobileTheme
 fun LoginScreen(
     auth: FirebaseAuth?,
     modifier: Modifier = Modifier,
-    onLoginSuccess: () -> Unit = {},
-    onNavigateToRegister: () -> Unit = {}
+    onLoginSuccess: () -> Unit = {}
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -631,27 +630,8 @@ fun LoginScreen(
                 }
             }
 
-            // AppTheme.colors.secondary Assistance Links
+            // Enlace de ayuda. Las cuentas las crea el administrador: no hay auto-registro.
             Spacer(modifier = Modifier.height(16.dp))
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "¿Primer ingreso o nueva matrícula? ",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = AppTheme.colors.onSurfaceVariant
-                )
-                Text(
-                    text = "Activar cuenta",
-                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                    color = AppTheme.colors.primary,
-                    modifier = Modifier.clickable { onNavigateToRegister() }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(6.dp))
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
