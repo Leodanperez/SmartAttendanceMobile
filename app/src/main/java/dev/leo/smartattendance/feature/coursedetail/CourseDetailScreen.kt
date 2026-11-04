@@ -1,4 +1,6 @@
 package dev.leo.smartattendance.feature.coursedetail
+import dev.leo.smartattendance.core.icons.LucideIcons
+import dev.leo.smartattendance.core.icons.*
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -17,12 +19,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.AddBox
-import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -76,7 +72,7 @@ fun CourseDetailScreen(
             ) {
                 IconButton(onClick = onNavigateBack) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                        imageVector = LucideIcons.ArrowLeft,
                         contentDescription = "Volver",
                         tint = colors.onSurface
                     )
@@ -155,7 +151,7 @@ fun CourseDetailScreen(
                             .height(50.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.AddBox,
+                            imageVector = LucideIcons.SquarePlus,
                             contentDescription = null,
                             modifier = Modifier.size(20.dp)
                         )
@@ -182,7 +178,7 @@ fun CourseDetailScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                imageVector = Icons.Outlined.CheckCircle,
+                                imageVector = LucideIcons.CircleCheck,
                                 contentDescription = null,
                                 tint = if (hasData) colors.successText else colors.onSurfaceVariant,
                                 modifier = Modifier.size(28.dp)
@@ -208,7 +204,7 @@ fun CourseDetailScreen(
 
             // Horario.
             item {
-                SectionTitle(icon = Icons.Outlined.Schedule, text = "Horario semanal")
+                SectionTitle(icon = LucideIcons.Clock, text = "Horario semanal")
                 Spacer(modifier = Modifier.height(8.dp))
                 Surface(
                     shape = RoundedCornerShape(16.dp),
@@ -253,7 +249,7 @@ fun CourseDetailScreen(
 
             // Sesiones recientes.
             item {
-                SectionTitle(icon = Icons.Outlined.CalendarMonth, text = "Sesiones recientes")
+                SectionTitle(icon = LucideIcons.CalendarDays, text = "Sesiones recientes")
                 Spacer(modifier = Modifier.height(8.dp))
             }
 

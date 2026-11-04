@@ -1,4 +1,6 @@
 package dev.leo.smartattendance.feature.studenthome
+import dev.leo.smartattendance.core.icons.LucideIcons
+import dev.leo.smartattendance.core.icons.*
 import dev.leo.smartattendance.ui.theme.AppTheme
 
 import androidx.compose.foundation.background
@@ -18,10 +20,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -147,7 +145,7 @@ fun StudentHomeScreen(
                                 .height(48.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Outlined.QrCodeScanner,
+                                imageVector = LucideIcons.ScanLine,
                                 contentDescription = "Scan",
                                 tint = Color.White
                             )
@@ -178,7 +176,7 @@ fun StudentHomeScreen(
                         shape = RoundedCornerShape(10.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.Add,
+                            imageVector = LucideIcons.Plus,
                             contentDescription = "Unirme",
                             modifier = Modifier.size(16.dp)
                         )
@@ -295,7 +293,7 @@ private fun ActiveSessionAlert(
                     .height(46.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.QrCodeScanner,
+                    imageVector = LucideIcons.ScanLine,
                     contentDescription = null,
                     tint = Color.White,
                     modifier = Modifier.size(18.dp)
@@ -366,7 +364,7 @@ fun StudentCourseCard(
                 ) {
                     if (hasData) {
                         Icon(
-                            imageVector = Icons.Outlined.CheckCircle,
+                            imageVector = LucideIcons.CircleCheck,
                             contentDescription = "Asistencia",
                             tint = AppTheme.colors.successText,
                             modifier = Modifier.size(14.dp)

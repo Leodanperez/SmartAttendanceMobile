@@ -1,4 +1,6 @@
 package dev.leo.smartattendance.feature.auth
+import dev.leo.smartattendance.core.icons.LucideIcons
+import dev.leo.smartattendance.core.icons.*
 import dev.leo.smartattendance.ui.theme.AppTheme
 
 import android.widget.Toast
@@ -26,20 +28,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.outlined.HelpOutline
-import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material.icons.outlined.AlternateEmail
-import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.LockOpen
-import androidx.compose.material.icons.outlined.School
-import androidx.compose.material.icons.outlined.Security
-import androidx.compose.material.icons.outlined.Shield
-import androidx.compose.material.icons.outlined.VerifiedUser
-import androidx.compose.material.icons.outlined.Visibility
-import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -220,7 +208,7 @@ fun LoginScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.Shield,
+                            imageVector = LucideIcons.Shield,
                             contentDescription = "Escudo SmartAttendance",
                             tint = Color.White,
                             modifier = Modifier.size(38.dp)
@@ -263,7 +251,7 @@ fun LoginScreen(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.VerifiedUser,
+                        imageVector = LucideIcons.ShieldCheck,
                         contentDescription = "Verificado",
                         tint = AppTheme.colors.primary,
                         modifier = Modifier.size(16.dp)
@@ -318,7 +306,7 @@ fun LoginScreen(
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Outlined.School,
+                                    imageVector = LucideIcons.GraduationCap,
                                     contentDescription = "Portal",
                                     tint = AppTheme.colors.primary,
                                     modifier = Modifier.size(22.dp)
@@ -388,7 +376,7 @@ fun LoginScreen(
                         },
                         leadingIcon = {
                             Icon(
-                                imageVector = Icons.Outlined.AlternateEmail,
+                                imageVector = LucideIcons.AtSign,
                                 contentDescription = "Correo",
                                 tint = AppTheme.colors.outline,
                                 modifier = Modifier.size(20.dp)
@@ -398,7 +386,7 @@ fun LoginScreen(
                             if (email.isNotEmpty()) {
                                 IconButton(onClick = { email = "" }) {
                                     Icon(
-                                        imageVector = Icons.Default.Cancel,
+                                        imageVector = LucideIcons.CircleX,
                                         contentDescription = "Limpiar correo",
                                         tint = AppTheme.colors.outline,
                                         modifier = Modifier.size(20.dp)
@@ -452,7 +440,7 @@ fun LoginScreen(
                         },
                         leadingIcon = {
                             Icon(
-                                imageVector = Icons.Outlined.Lock,
+                                imageVector = LucideIcons.Lock,
                                 contentDescription = "Contraseña",
                                 tint = AppTheme.colors.outline,
                                 modifier = Modifier.size(20.dp)
@@ -461,7 +449,7 @@ fun LoginScreen(
                         trailingIcon = {
                             IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
                                 Icon(
-                                    imageVector = if (isPasswordVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                                    imageVector = if (isPasswordVisible) LucideIcons.EyeOff else LucideIcons.Eye,
                                     contentDescription = if (isPasswordVisible) "Ocultar contraseña" else "Mostrar contraseña",
                                     tint = AppTheme.colors.outline,
                                     modifier = Modifier.size(20.dp)
@@ -543,7 +531,7 @@ fun LoginScreen(
                                     modifier = Modifier.padding(10.dp)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Outlined.ErrorOutline,
+                                        imageVector = LucideIcons.CircleAlert,
                                         contentDescription = "Error",
                                         tint = MaterialTheme.colorScheme.error,
                                         modifier = Modifier.size(18.dp)
@@ -610,7 +598,7 @@ fun LoginScreen(
                             )
                         } else {
                             Icon(
-                                imageVector = Icons.Outlined.LockOpen,
+                                imageVector = LucideIcons.LockOpen,
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp)
                             )
@@ -621,7 +609,7 @@ fun LoginScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                imageVector = LucideIcons.ArrowRight,
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp)
                             )
@@ -643,7 +631,7 @@ fun LoginScreen(
                     .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Outlined.HelpOutline,
+                    imageVector = LucideIcons.CircleHelp,
                     contentDescription = "Soporte",
                     tint = AppTheme.colors.outline,
                     modifier = Modifier.size(14.dp)
@@ -669,7 +657,7 @@ fun LoginScreen(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.Security,
+                        imageVector = LucideIcons.ShieldCheck,
                         contentDescription = "Seguridad",
                         tint = AppTheme.colors.primary,
                         modifier = Modifier.size(14.dp)

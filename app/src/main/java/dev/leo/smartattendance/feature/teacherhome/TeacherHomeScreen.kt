@@ -1,4 +1,6 @@
 package dev.leo.smartattendance.feature.teacherhome
+import dev.leo.smartattendance.core.icons.LucideIcons
+import dev.leo.smartattendance.core.icons.*
 import dev.leo.smartattendance.domain.model.scheduleSummary
 import dev.leo.smartattendance.ui.theme.AppTheme
 
@@ -22,20 +24,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
-import androidx.compose.material.icons.automirrored.outlined.MenuBook
-import androidx.compose.material.icons.outlined.AddBox
-import androidx.compose.material.icons.outlined.Apartment
-import androidx.compose.material.icons.outlined.CalendarToday
-import androidx.compose.material.icons.outlined.EditNote
-import androidx.compose.material.icons.outlined.Insights
-import androidx.compose.material.icons.outlined.QrCodeScanner
-import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.TaskAlt
-import androidx.compose.material.icons.outlined.Timer
-import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -205,7 +193,7 @@ fun GreetingSection(userName: String) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = Icons.Outlined.Apartment,
+                imageVector = LucideIcons.Building2,
                 contentDescription = "Panel",
                 tint = AppTheme.colors.primary,
                 modifier = Modifier.size(16.dp)
@@ -263,7 +251,7 @@ fun ActiveSessionCard(
                         .height(48.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.AddBox,
+                        imageVector = LucideIcons.SquarePlus,
                         contentDescription = "Nueva sesión",
                         modifier = Modifier.size(20.dp)
                     )
@@ -425,7 +413,7 @@ fun ActiveSessionCard(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = Icons.Outlined.QrCodeScanner,
+                            imageVector = LucideIcons.ScanLine,
                             contentDescription = "Scanner",
                             modifier = Modifier.size(20.dp)
                         )
@@ -444,7 +432,7 @@ fun ActiveSessionCard(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            imageVector = LucideIcons.ArrowRight,
                             contentDescription = "Forward",
                             tint = Color.White,
                             modifier = Modifier.size(16.dp)
@@ -514,7 +502,7 @@ fun QuickActionsGrid(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.AddBox,
+                            imageVector = LucideIcons.SquarePlus,
                             contentDescription = "Nueva Sesión",
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)
@@ -558,7 +546,7 @@ fun QuickActionsGrid(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.MenuBook,
+                            imageVector = LucideIcons.BookOpen,
                             contentDescription = "Mis Cursos",
                             tint = AppTheme.colors.secondary,
                             modifier = Modifier.size(20.dp)
@@ -609,7 +597,7 @@ fun QuickActionsGrid(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.Insights,
+                            imageVector = LucideIcons.ChartLine,
                             contentDescription = "Reportes",
                             tint = AppTheme.colors.primary,
                             modifier = Modifier.size(20.dp)
@@ -653,7 +641,7 @@ fun QuickActionsGrid(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.Tune,
+                            imageVector = LucideIcons.Settings,
                             contentDescription = "Ajustes",
                             tint = AppTheme.colors.secondary,
                             modifier = Modifier.size(20.dp)
@@ -746,7 +734,7 @@ fun AssignedCoursesSection(
                     color = AppTheme.colors.primary
                 )
                 Icon(
-                    imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                    imageVector = LucideIcons.ChevronRight,
                     contentDescription = "Ver todos",
                     tint = AppTheme.colors.primary,
                     modifier = Modifier.size(16.dp)
@@ -852,7 +840,7 @@ fun CourseCardItem(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Outlined.Schedule,
+                        imageVector = LucideIcons.Clock,
                         contentDescription = "Horario",
                         tint = AppTheme.colors.primary,
                         modifier = Modifier.size(16.dp)
@@ -881,7 +869,7 @@ fun CourseCardItem(
                         )
                         Spacer(modifier = Modifier.width(2.dp))
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            imageVector = LucideIcons.ArrowRight,
                             contentDescription = "Detalle",
                             tint = AppTheme.colors.primary,
                             modifier = Modifier.size(14.dp)
@@ -964,7 +952,7 @@ private fun TeacherActivityRowItem(item: dev.leo.smartattendance.domain.model.Te
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = if (isClosed) Icons.Outlined.TaskAlt else Icons.Outlined.QrCodeScanner,
+                imageVector = if (isClosed) LucideIcons.CircleCheckBig else LucideIcons.ScanLine,
                 contentDescription = null,
                 tint = if (isClosed) AppTheme.colors.primary else AppTheme.colors.secondary,
                 modifier = Modifier.size(20.dp)

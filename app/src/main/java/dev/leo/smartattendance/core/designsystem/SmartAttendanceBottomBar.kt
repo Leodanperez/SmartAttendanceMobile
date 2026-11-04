@@ -1,4 +1,6 @@
 package dev.leo.smartattendance.core.designsystem
+import dev.leo.smartattendance.core.icons.LucideIcons
+import dev.leo.smartattendance.core.icons.*
 import dev.leo.smartattendance.ui.theme.AppTheme
 
 import androidx.compose.animation.animateColorAsState
@@ -17,14 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.outlined.BarChart
-import androidx.compose.material.icons.outlined.Group
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.QrCodeScanner
-import androidx.compose.material.icons.outlined.School
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
@@ -59,29 +53,29 @@ fun getNavigationTabsForRole(role: UserRole): List<NavigationTabItem> {
             NavigationTabItem(
                 route = NavRoutes.StudentHome,
                 label = "Inicio",
-                icon = Icons.Outlined.Home,
-                selectedIcon = Icons.Default.Home
+                icon = LucideIcons.House,
+                selectedIcon = LucideIcons.House
             ),
             NavigationTabItem(
                 route = NavRoutes.Courses,
                 label = "Mis cursos",
-                icon = Icons.Outlined.School
+                icon = LucideIcons.GraduationCap
             ),
             NavigationTabItem(
                 route = NavRoutes.Sessions,
                 label = "Escanear QR",
-                icon = Icons.Outlined.QrCodeScanner,
+                icon = LucideIcons.ScanLine,
                 hasBadge = true
             ),
             NavigationTabItem(
                 route = NavRoutes.Reports,
                 label = "Historial",
-                icon = Icons.Outlined.BarChart
+                icon = LucideIcons.ChartColumn
             ),
             NavigationTabItem(
                 route = NavRoutes.Profile,
                 label = "Perfil",
-                icon = Icons.Outlined.Person
+                icon = LucideIcons.User
             )
         )
 
@@ -89,29 +83,29 @@ fun getNavigationTabsForRole(role: UserRole): List<NavigationTabItem> {
             NavigationTabItem(
                 route = NavRoutes.TeacherHome,
                 label = "Inicio",
-                icon = Icons.Outlined.Home,
-                selectedIcon = Icons.Default.Home
+                icon = LucideIcons.House,
+                selectedIcon = LucideIcons.House
             ),
             NavigationTabItem(
                 route = NavRoutes.Courses,
                 label = "Mis cursos",
-                icon = Icons.Outlined.School
+                icon = LucideIcons.GraduationCap
             ),
             NavigationTabItem(
                 route = NavRoutes.Sessions,
                 label = "Sesiones",
-                icon = Icons.Outlined.QrCodeScanner,
+                icon = LucideIcons.ScanLine,
                 hasBadge = true
             ),
             NavigationTabItem(
                 route = NavRoutes.Reports,
                 label = "Reportes",
-                icon = Icons.Outlined.BarChart
+                icon = LucideIcons.ChartColumn
             ),
             NavigationTabItem(
                 route = NavRoutes.Profile,
                 label = "Perfil",
-                icon = Icons.Outlined.Person
+                icon = LucideIcons.User
             )
         )
 
@@ -119,28 +113,28 @@ fun getNavigationTabsForRole(role: UserRole): List<NavigationTabItem> {
             NavigationTabItem(
                 route = NavRoutes.TeacherHome,
                 label = "Inicio",
-                icon = Icons.Outlined.Home,
-                selectedIcon = Icons.Default.Home
+                icon = LucideIcons.House,
+                selectedIcon = LucideIcons.House
             ),
             NavigationTabItem(
                 route = NavRoutes.Courses,
                 label = "Cursos",
-                icon = Icons.Outlined.School
+                icon = LucideIcons.GraduationCap
             ),
             NavigationTabItem(
                 route = NavRoutes.Sessions,
                 label = "Usuarios",
-                icon = Icons.Outlined.Group
+                icon = LucideIcons.Users
             ),
             NavigationTabItem(
                 route = NavRoutes.Reports,
                 label = "Reportes",
-                icon = Icons.Outlined.BarChart
+                icon = LucideIcons.ChartColumn
             ),
             NavigationTabItem(
                 route = NavRoutes.Profile,
                 label = "Perfil",
-                icon = Icons.Outlined.Person
+                icon = LucideIcons.User
             )
         )
     }

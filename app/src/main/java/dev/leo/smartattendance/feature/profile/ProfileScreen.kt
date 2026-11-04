@@ -1,4 +1,6 @@
 package dev.leo.smartattendance.feature.profile
+import dev.leo.smartattendance.core.icons.LucideIcons
+import dev.leo.smartattendance.core.icons.*
 import dev.leo.smartattendance.ui.theme.AppTheme
 
 import androidx.compose.foundation.background
@@ -17,15 +19,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ExitToApp
-import androidx.compose.material.icons.outlined.Badge
-import androidx.compose.material.icons.outlined.BrightnessAuto
-import androidx.compose.material.icons.outlined.DarkMode
-import androidx.compose.material.icons.outlined.Email
-import androidx.compose.material.icons.outlined.LightMode
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -76,7 +69,7 @@ fun ProfileScreen(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Outlined.Person,
+                imageVector = LucideIcons.User,
                 contentDescription = "Avatar",
                 tint = AppTheme.colors.primary,
                 modifier = Modifier.size(48.dp)
@@ -116,7 +109,7 @@ fun ProfileScreen(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 ProfileInfoRow(
-                    icon = Icons.Outlined.Email,
+                    icon = LucideIcons.Mail,
                     label = "Correo Institucional",
                     value = user.email
                 )
@@ -124,7 +117,7 @@ fun ProfileScreen(
                 Spacer(modifier = Modifier.height(14.dp))
 
                 ProfileInfoRow(
-                    icon = Icons.Outlined.Badge,
+                    icon = LucideIcons.IdCard,
                     label = "Código Institucional",
                     value = user.institutionalCode.ifEmpty { "DOC-1029" }
                 )
@@ -132,7 +125,7 @@ fun ProfileScreen(
                 Spacer(modifier = Modifier.height(14.dp))
 
                 ProfileInfoRow(
-                    icon = Icons.Outlined.Shield,
+                    icon = LucideIcons.Shield,
                     label = "Facultad",
                     value = user.department
                 )
@@ -161,11 +154,11 @@ fun ProfileScreen(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    ThemeOption("Sistema", Icons.Outlined.BrightnessAuto, themeMode == ThemeMode.SYSTEM, Modifier.weight(1f)) { onThemeChange(ThemeMode.SYSTEM) }
+                    ThemeOption("Sistema", LucideIcons.SunMoon, themeMode == ThemeMode.SYSTEM, Modifier.weight(1f)) { onThemeChange(ThemeMode.SYSTEM) }
                     Spacer(modifier = Modifier.width(8.dp))
-                    ThemeOption("Claro", Icons.Outlined.LightMode, themeMode == ThemeMode.LIGHT, Modifier.weight(1f)) { onThemeChange(ThemeMode.LIGHT) }
+                    ThemeOption("Claro", LucideIcons.Sun, themeMode == ThemeMode.LIGHT, Modifier.weight(1f)) { onThemeChange(ThemeMode.LIGHT) }
                     Spacer(modifier = Modifier.width(8.dp))
-                    ThemeOption("Oscuro", Icons.Outlined.DarkMode, themeMode == ThemeMode.DARK, Modifier.weight(1f)) { onThemeChange(ThemeMode.DARK) }
+                    ThemeOption("Oscuro", LucideIcons.Moon, themeMode == ThemeMode.DARK, Modifier.weight(1f)) { onThemeChange(ThemeMode.DARK) }
                 }
             }
         }
@@ -181,7 +174,7 @@ fun ProfileScreen(
                 .height(48.dp)
         ) {
             Icon(
-                imageVector = Icons.AutoMirrored.Outlined.ExitToApp,
+                imageVector = LucideIcons.LogOut,
                 contentDescription = "Cerrar Sesión",
                 tint = Color.White
             )

@@ -1,4 +1,6 @@
 package dev.leo.smartattendance.feature.qrscanner
+import dev.leo.smartattendance.core.icons.LucideIcons
+import dev.leo.smartattendance.core.icons.*
 import dev.leo.smartattendance.ui.theme.AppTheme
 
 import android.Manifest
@@ -39,17 +41,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Bolt
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.FlashlightOff
-import androidx.compose.material.icons.outlined.FlashlightOn
-import androidx.compose.material.icons.outlined.Keyboard
-import androidx.compose.material.icons.outlined.PinDrop
-import androidx.compose.material.icons.outlined.QrCodeScanner
-import androidx.compose.material.icons.outlined.Security
-import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -292,7 +283,7 @@ fun QrScannerScreen(
                                 .background(Color.White.copy(alpha = 0.15f))
                         ) {
                             Icon(
-                                imageVector = Icons.Outlined.Close,
+                                imageVector = LucideIcons.X,
                                 contentDescription = "Cerrar",
                                 tint = Color.White
                             )
@@ -334,7 +325,7 @@ fun QrScannerScreen(
                                 )
                         ) {
                             Icon(
-                                imageVector = if (isFlashOn) Icons.Outlined.FlashlightOn else Icons.Outlined.FlashlightOff,
+                                imageVector = if (isFlashOn) LucideIcons.Flashlight else LucideIcons.FlashlightOff,
                                 contentDescription = "Linterna",
                                 tint = if (isFlashOn) AppTheme.colors.onSurface else Color.White
                             )
@@ -429,7 +420,7 @@ fun QrScannerScreen(
                         }
 
                         Icon(
-                            imageVector = Icons.Outlined.QrCodeScanner,
+                            imageVector = LucideIcons.ScanLine,
                             contentDescription = "Target",
                             tint = AppTheme.colors.secondaryContainer.copy(alpha = 0.25f),
                             modifier = Modifier
@@ -466,7 +457,7 @@ fun QrScannerScreen(
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Outlined.PinDrop,
+                                        imageVector = LucideIcons.MapPin,
                                         contentDescription = "GPS",
                                         tint = AppTheme.colors.secondaryContainer,
                                         modifier = Modifier.size(12.dp)
@@ -489,7 +480,7 @@ fun QrScannerScreen(
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Outlined.Security,
+                                        imageVector = LucideIcons.ShieldCheck,
                                         contentDescription = "Seguridad",
                                         tint = AppTheme.colors.secondaryContainer,
                                         modifier = Modifier.size(12.dp)
@@ -553,7 +544,7 @@ fun QrScannerScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Outlined.Bolt,
+                                imageVector = LucideIcons.Zap,
                                 contentDescription = "Rápido",
                                 tint = AppTheme.colors.secondary,
                                 modifier = Modifier.size(20.dp)
@@ -672,7 +663,7 @@ fun QrScannerScreen(
                         .height(48.dp)
                 ) {
                     Icon(
-                        imageVector = if (isFlashOn) Icons.Outlined.FlashlightOff else Icons.Outlined.FlashlightOn,
+                        imageVector = if (isFlashOn) LucideIcons.FlashlightOff else LucideIcons.Flashlight,
                         contentDescription = "Flash",
                         tint = Color.White,
                         modifier = Modifier.size(20.dp)
@@ -702,7 +693,7 @@ fun QrScannerScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.Keyboard,
+                            imageVector = LucideIcons.Keyboard,
                             contentDescription = "Teclado",
                             tint = AppTheme.colors.primary,
                             modifier = Modifier.size(20.dp)
@@ -724,7 +715,7 @@ fun QrScannerScreen(
                     modifier = Modifier.padding(horizontal = 4.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.VerifiedUser,
+                        imageVector = LucideIcons.ShieldCheck,
                         contentDescription = "Verificado",
                         tint = AppTheme.colors.outline,
                         modifier = Modifier
@@ -902,7 +893,7 @@ fun AttendanceResultDialog(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.CheckCircle,
+                        imageVector = LucideIcons.CircleCheck,
                         contentDescription = "Éxito",
                         tint = AppTheme.colors.successText,
                         modifier = Modifier.size(24.dp)
@@ -977,7 +968,7 @@ fun AttendanceErrorDialog(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.Close,
+                        imageVector = LucideIcons.X,
                         contentDescription = "Error",
                         tint = AppTheme.colors.error,
                         modifier = Modifier.size(24.dp)
@@ -1026,7 +1017,7 @@ fun AttendanceInfoDialog(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.CheckCircle,
+                        imageVector = LucideIcons.CircleCheck,
                         contentDescription = "Información",
                         tint = AppTheme.colors.primary,
                         modifier = Modifier.size(24.dp)

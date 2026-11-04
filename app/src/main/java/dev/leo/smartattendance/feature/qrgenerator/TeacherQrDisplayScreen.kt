@@ -1,4 +1,6 @@
 package dev.leo.smartattendance.feature.qrgenerator
+import dev.leo.smartattendance.core.icons.LucideIcons
+import dev.leo.smartattendance.core.icons.*
 import dev.leo.smartattendance.ui.theme.AppTheme
 
 import android.graphics.Bitmap
@@ -20,12 +22,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.QrCode
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -157,7 +153,7 @@ fun TeacherQrDisplayScreen(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                        imageVector = LucideIcons.ArrowLeft,
                         contentDescription = "Volver al inicio",
                         modifier = Modifier.size(18.dp)
                     )
@@ -254,7 +250,7 @@ fun TeacherQrDisplayScreen(
                                 modifier = Modifier.fillMaxSize()
                             )
                         } ?: Icon(
-                            imageVector = Icons.Outlined.QrCode,
+                            imageVector = LucideIcons.QrCode,
                             contentDescription = "QR",
                             modifier = Modifier.size(100.dp),
                             tint = AppTheme.colors.primary
@@ -271,7 +267,7 @@ fun TeacherQrDisplayScreen(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = Icons.Outlined.Timer,
+                                imageVector = LucideIcons.Timer,
                                 contentDescription = "Timer",
                                 tint = AppTheme.colors.primary,
                                 modifier = Modifier.size(20.dp)
@@ -328,7 +324,7 @@ fun TeacherQrDisplayScreen(
                             modifier = Modifier.weight(1f)
                         ) {
                             Icon(
-                                imageVector = Icons.Outlined.Refresh,
+                                imageVector = LucideIcons.RefreshCw,
                                 contentDescription = "Renovar",
                                 modifier = Modifier.size(16.dp)
                             )
@@ -364,7 +360,7 @@ fun TeacherQrDisplayScreen(
                                 )
                             } else {
                                 Icon(
-                                    imageVector = Icons.Outlined.Close,
+                                    imageVector = LucideIcons.X,
                                     contentDescription = "Cerrar",
                                     tint = Color.White,
                                     modifier = Modifier.size(16.dp)

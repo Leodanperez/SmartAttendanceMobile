@@ -1,4 +1,6 @@
 package dev.leo.smartattendance.core.designsystem
+import dev.leo.smartattendance.core.icons.LucideIcons
+import dev.leo.smartattendance.core.icons.*
 import dev.leo.smartattendance.ui.theme.AppTheme
 
 import androidx.compose.foundation.background
@@ -16,10 +18,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
@@ -80,7 +78,7 @@ fun SmartAttendanceHeader(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.Shield,
+                        imageVector = LucideIcons.Shield,
                         contentDescription = "Logo SmartAttendance",
                         tint = Color.White,
                         modifier = Modifier.size(20.dp)
@@ -137,14 +135,14 @@ fun SmartAttendanceHeader(
                                 }
                             ) {
                                 Icon(
-                                    imageVector = Icons.Outlined.Notifications,
+                                    imageVector = LucideIcons.Bell,
                                     contentDescription = "Notificaciones",
                                     tint = AppTheme.colors.onSurfaceVariant
                                 )
                             }
                         } else {
                             Icon(
-                                imageVector = Icons.Outlined.Notifications,
+                                imageVector = LucideIcons.Bell,
                                 contentDescription = "Notificaciones",
                                 tint = AppTheme.colors.onSurfaceVariant
                             )
@@ -163,7 +161,7 @@ fun SmartAttendanceHeader(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.Person,
+                            imageVector = LucideIcons.User,
                             contentDescription = "Perfil",
                             tint = AppTheme.colors.primary,
                             modifier = Modifier.size(22.dp)
