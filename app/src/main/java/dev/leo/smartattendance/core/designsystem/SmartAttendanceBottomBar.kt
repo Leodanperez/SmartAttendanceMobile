@@ -1,8 +1,23 @@
 package dev.leo.smartattendance.core.designsystem
 import dev.leo.smartattendance.ui.theme.AppTheme
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.outlined.BarChart
@@ -15,13 +30,17 @@ import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.leo.smartattendance.core.navigation.NavRoutes
@@ -130,6 +149,10 @@ fun getNavigationTabsForRole(role: UserRole): List<NavigationTabItem> {
 
 val DefaultNavigationTabs = getNavigationTabsForRole(UserRole.TEACHER)
 
+/**
+ * Barra de navegación flotante (estilo "pill" tipo iOS): una tarjeta redondeada separada de los
+ * bordes, con sombra, y la pestaña activa resaltada con una píldora de fondo.
+ */
 @Composable
 fun SmartAttendanceBottomBar(
     currentRoute: NavRoutes,
@@ -138,67 +161,107 @@ fun SmartAttendanceBottomBar(
     userRole: UserRole = UserRole.TEACHER,
     tabs: List<NavigationTabItem> = getNavigationTabsForRole(userRole)
 ) {
-    NavigationBar(
-        containerColor = AppTheme.colors.surfaceContainerLowest,
-        tonalElevation = 8.dp,
+    Box(
         modifier = modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center
     ) {
-        tabs.forEach { tab ->
-            SmartAttendanceNavItem(
-                item = tab,
-                isSelected = currentRoute == tab.route,
-                onClick = { onTabSelected(tab.route) }
-            )
+        Surface(
+            shape = RoundedCornerShape(28.dp),
+            color = AppTheme.colors.surfaceContainerLowest,
+            shadowElevation = 12.dp,
+            tonalElevation = 2.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                tabs.forEach { tab ->
+                    SmartAttendanceNavItem(
+                        item = tab,
+                        isSelected = currentRoute == tab.route,
+                        onClick = { onTabSelected(tab.route) }
+                    )
+                }
+            }
         }
     }
 }
 
+/**
+ * Pestaña flotante: ícono centrado y, cuando está activa, una píldora de fondo que se expande
+ * para mostrar el texto. Las inactivas muestran solo el ícono.
+ */
 @Composable
 fun RowScope.SmartAttendanceNavItem(
     item: NavigationTabItem,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    NavigationBarItem(
-        selected = isSelected,
-        onClick = onClick,
-        icon = {
+    val pillColor by animateColorAsState(
+        targetValue = if (isSelected) AppTheme.colors.primaryContainer else Color.Transparent,
+        animationSpec = tween(220),
+        label = "pill",
+    )
+    val contentColor by animateColorAsState(
+        targetValue = if (isSelected) Color.White else AppTheme.colors.onSurfaceVariant,
+        animationSpec = tween(220),
+        label = "content",
+    )
+    val horizontalPad by animateDpAsState(
+        targetValue = if (isSelected) 16.dp else 0.dp,
+        animationSpec = tween(220),
+        label = "pad",
+    )
+
+    Box(
+        modifier = Modifier
+            .weight(1f)
+            .selectable(
+                selected = isSelected,
+                onClick = onClick,
+                role = Role.Tab,
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .heightIn(min = 44.dp)
+                .clip(CircleShape)
+                .background(pillColor)
+                .padding(horizontal = horizontalPad, vertical = 8.dp),
+        ) {
             val iconVector = if (isSelected) item.selectedIcon else item.icon
             if (item.hasBadge) {
                 BadgedBox(
-                    badge = {
-                        Badge(
-                            containerColor = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(8.dp)
-                        )
-                    }
+                    badge = { Badge(containerColor = MaterialTheme.colorScheme.error, modifier = Modifier.size(7.dp)) }
                 ) {
-                    Icon(
-                        imageVector = iconVector,
-                        contentDescription = item.label
-                    )
+                    Icon(iconVector, contentDescription = item.label, tint = contentColor, modifier = Modifier.size(22.dp))
                 }
             } else {
-                Icon(
-                    imageVector = iconVector,
-                    contentDescription = item.label
+                Icon(iconVector, contentDescription = item.label, tint = contentColor, modifier = Modifier.size(22.dp))
+            }
+
+            // El texto solo aparece en la pestaña activa (estilo pill expandible).
+            if (isSelected) {
+                Text(
+                    text = item.label,
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = contentColor,
+                    maxLines = 1,
+                    modifier = Modifier.padding(start = 8.dp),
                 )
             }
-        },
-        label = {
-            Text(
-                text = item.label,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                )
-            )
-        },
-        colors = NavigationBarItemDefaults.colors(
-            selectedIconColor = AppTheme.colors.secondary,
-            selectedTextColor = AppTheme.colors.primary,
-            indicatorColor = AppTheme.colors.secondaryFixed,
-            unselectedIconColor = AppTheme.colors.onSurfaceVariant,
-            unselectedTextColor = AppTheme.colors.onSurfaceVariant
-        )
-    )
+        }
+    }
 }
