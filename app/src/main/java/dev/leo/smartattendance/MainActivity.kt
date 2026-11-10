@@ -5,10 +5,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.ui.Alignment
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -53,10 +57,15 @@ class MainActivity : ComponentActivity() {
     private lateinit var auth: FirebaseAuth
     private lateinit var db: FirebaseFirestore
 
+    // true mientras Firebase decide si hay sesión activa. Mantiene el splash en pantalla para
+    // evitar el "parpadeo" login -> home al reabrir la app con sesión guardada.
+    private var keepSplash = true
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // Único splash: el del sistema (Android 12+) con nuestro tema (fondo de marca + escudo).
-        // Al terminar entra directo al login/home, sin un segundo splash de Compose.
-        installSplashScreen()
+        // Se mantiene hasta resolver la sesión; luego entra directo al login o al home.
+        val splash = installSplashScreen()
+        splash.setKeepOnScreenCondition { keepSplash }
         super.onCreate(savedInstanceState)
 
         auth = FirebaseAuth.getInstance()
@@ -76,6 +85,16 @@ class MainActivity : ComponentActivity() {
 
                 var currentRoute by remember {
                     mutableStateOf<NavRoutes>(NavRoutes.Login)
+                }
+
+                // Mientras Firebase rehidrata la sesión guardada no sabemos aún si hay usuario.
+                // Hasta resolverlo mostramos una pantalla de carga (no el login), para evitar el
+                // "parpadeo" de login -> home al reabrir la app con sesión activa.
+                var isCheckingAuth by remember { mutableStateOf(true) }
+
+                // El splash del sistema se descarta en cuanto termina la verificación de sesión.
+                LaunchedEffect(isCheckingAuth) {
+                    if (!isCheckingAuth) keepSplash = false
                 }
 
                 // Estado del registro de asistencia por QR.
@@ -109,38 +128,47 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(auth.currentUser) {
                     val firebaseUser = auth.currentUser
                     if (firebaseUser != null) {
+                        // Hay sesión guardada: resolvemos el perfil antes de decidir la ruta.
+                        isCheckingAuth = true
                         scope.launch {
-                            // Seed initial courses if empty
-                            firestoreDataSource.seedInitialCoursesIfEmpty(firebaseUser.uid)
+                            try {
+                                // Seed initial courses if empty
+                                firestoreDataSource.seedInitialCoursesIfEmpty(firebaseUser.uid)
 
-                            val userDto = firestoreDataSource.getUser(firebaseUser.uid)
-                            if (userDto != null) {
-                                val role = try {
-                                    UserRole.valueOf(userDto.role.uppercase().trim())
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
-                                    UserRole.STUDENT
+                                val userDto = firestoreDataSource.getUser(firebaseUser.uid)
+                                if (userDto != null) {
+                                    val role = try {
+                                        UserRole.valueOf(userDto.role.uppercase().trim())
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                        UserRole.STUDENT
+                                    }
+                                    currentUser = User(
+                                        uid = firebaseUser.uid,
+                                        firstName = userDto.firstName.ifEmpty { userDto.name.substringBefore(" ") },
+                                        lastName = userDto.lastName.ifEmpty { userDto.name.substringAfter(" ", "") },
+                                        email = firebaseUser.email ?: "",
+                                        institutionalCode = userDto.institutionalCode,
+                                        role = role,
+                                        department = userDto.department
+                                    )
+                                    currentRoute = when (role) {
+                                        UserRole.STUDENT -> NavRoutes.StudentHome
+                                        UserRole.TEACHER -> NavRoutes.TeacherHome
+                                        UserRole.ADMIN -> NavRoutes.TeacherHome
+                                    }
+                                } else {
+                                    currentRoute = NavRoutes.StudentHome
                                 }
-                                currentUser = User(
-                                    uid = firebaseUser.uid,
-                                    firstName = userDto.firstName.ifEmpty { userDto.name.substringBefore(" ") },
-                                    lastName = userDto.lastName.ifEmpty { userDto.name.substringAfter(" ", "") },
-                                    email = firebaseUser.email ?: "",
-                                    institutionalCode = userDto.institutionalCode,
-                                    role = role,
-                                    department = userDto.department
-                                )
-                                currentRoute = when (role) {
-                                    UserRole.STUDENT -> NavRoutes.StudentHome
-                                    UserRole.TEACHER -> NavRoutes.TeacherHome
-                                    UserRole.ADMIN -> NavRoutes.TeacherHome
-                                }
-                            } else {
-                                currentRoute = NavRoutes.StudentHome
+                            } finally {
+                                // Resuelto (con o sin perfil): dejamos de mostrar la carga.
+                                isCheckingAuth = false
                             }
                         }
                     } else {
+                        // No hay sesión: directo al login, sin pantalla de carga.
                         currentRoute = NavRoutes.Login
+                        isCheckingAuth = false
                     }
                 }
 
@@ -190,6 +218,17 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
+                    if (isCheckingAuth) {
+                        // Pantalla de carga mientras Firebase decide si hay sesión activa.
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.background),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                        }
+                    } else {
                     when (currentRoute) {
                         NavRoutes.Login -> {
                             Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -469,6 +508,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
+                    } // fin else (isCheckingAuth)
 
                     // Diálogo "nueva sesión": elegir curso -> abre el formulario de creación.
                     if (showNewSessionDialog) {
